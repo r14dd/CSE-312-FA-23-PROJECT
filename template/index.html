@@ -3,9 +3,27 @@
 <html>
     <head>
         <title>Project</title>
+        <link rel="stylesheet" href="/static/style.css">
     </head>
 
     <body>
         <h1>Title</h1>
+
+        <h2> Hello, {{ userName }}</h2> 
+
+        <h3>Register</h3>
+        <form action="/register" id="reg-form" method="post" enctype="multipart/form-data">
+            <input type="text" name="username" placeholder="Username"/>
+            <input type="password" name="password" placeholder="Password"/>
+            <input type="submit" value="Register"/>
+        </form>
+
+        <h3>Login</h3>
+        <form action="/login" id="login-form" method="post" enctype="multipart/form-data">
+            <input type="text" name="username" placeholder="Username"/>
+            <input type="password" name="password" placeholder="Password"/>
+            <input type="submit" value="Login"/>
+        </form>
+
     </body>
 </html>

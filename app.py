@@ -15,8 +15,11 @@ app = Flask(__name__,template_folder='template')
 
 @app.route("/")
 def indexPage():
-    usr = request.cookies.get('username')
-    return render_template('index.html', usr=usr)
+    if "auth_token" in request.cookies:
+        usr = request.cookies.get('username')
+        return render_template('index.html', usr=usr)
+    else:
+        return render_template('index.html', usr="Guest")
 
 @app.route("/static/style.css")
 def css():

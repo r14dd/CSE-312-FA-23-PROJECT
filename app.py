@@ -43,9 +43,10 @@ def login():
         if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password']):
             resp = make_response("Now ur logged in", 200)
             auth_token = secrets.token_urlsafe(30)
-            hashed_auth_token = str(hashlib.sha256(auth_token))
+            hashed_auth_token = str(hashlib.sha256(auth_token.encode('utf-8')).hexdigest())
             token_collection.insert_one({"auth_token" : hashed_auth_token, "username" : user["username"]})
-            resp.set_cookie('auth_token', hashed_auth_token, max_age=3600)
+            resp.set_cookie('auth_token', hashed_auth_token, max_age=3600, httponly=True)
+            resp.set_cookie('username', user['username'], max_age=3600)
             return resp
         return make_response("Invalid username or password", 401)
     else:

@@ -49,7 +49,7 @@ def login():
     user = user_collection.find_one({'username' : inputUsername})
 
     if user:
-        if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password']):
+        if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password'].encode('utf-8')):
             resp = make_response("Now ur logged in", 200)
             auth_token = secrets.token_urlsafe(30)
             hashed_auth_token = str(hashlib.sha256(auth_token.encode('utf-8')).hexdigest())

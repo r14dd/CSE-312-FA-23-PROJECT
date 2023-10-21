@@ -39,7 +39,7 @@ def register():
         inputPassword = request.form['password']
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
-        user_collection.insert_one({"username": inputUsername, "password": pwHash})
+        user_collection.insert_one({"username": inputUsername, "password": pwHash.decode('utf-8')})
         return make_response("U on da boat now!", 200)
 
 @app.route("/login", methods=['POST'])

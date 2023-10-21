@@ -5,26 +5,80 @@ import bcrypt
 import hashlib
 import random
 
+import string
+
+
 from pymongo import MongoClient
 mongo_client = MongoClient("mongo")
 db = mongo_client["cse312"]
 user_collection = db["users"]
 token_collection = db["tokens"]
+post_collection=db["posts"]
+like_counter=db["likes"] 
+#postID->Riad
+
+#when i like 
+
+#postID->Riad,Baibhav
+all_users=post_collection.find()
+for p in all_users:
+    print(p)
 
 app = Flask(__name__,template_folder='template')
 
+
+def generate_random_string(length):
+    letters_and_digits = string.ascii_letters + string.digits
+    result_str = ''.join(random.choice(letters_and_digits) for i in range(length))
+    return result_str
+
+
 @app.route("/")
 def indexPage():
+    all_posts = post_collection.find()
     if "auth_token" in request.cookies:
         usr = request.cookies.get('username')
-        return render_template('index.html', usr=usr)
+        return render_template('index.html', usr=usr, posts=all_posts)
     else:
-        return render_template('index.html', usr="Guest")
+        return render_template('index.html', usr="Guest", posts=all_posts)
 
 @app.route("/static/style.css")
 def css():
     resp = send_from_directory('static', 'style.css')
     return resp
+
+
+@app.route("/create-post", methods=["POST"])
+def create_post():
+    post_title = request.form['post-title']
+    post_description = request.form['post-description']
+    author = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    post_id = generate_random_string(10)
+
+    post_collection.insert_one({
+        "_id": post_id,
+        "title": post_title,
+        "description": post_description,
+        "author": author,
+        "likes": []
+    })
+    return make_response("Go back to see", 200)
+
+@app.route("/like-post/<post_id>", methods=["POST"])
+def like_post(post_id):
+    username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    post = post_collection.find_one({"_id": post_id})
+
+    if username == "Guest":
+        return make_response("You need to be logged in to like a post", 401)
+
+    if username in post['likes']:
+        post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
+        return make_response("Unliked", 200)
+    else:
+        post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
+        return make_response("Liked", 200)
+
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -54,6 +108,9 @@ def login():
         return make_response("Invalid username or password", 401)
     else:
         return make_response("You have to register first!", 401)
+
+
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)

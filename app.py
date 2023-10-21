@@ -39,7 +39,7 @@ def register():
         inputPassword = request.form['password']
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
-        user_collection.insert_one({"username": inputUsername, "password": pwHash})
+        user_collection.insert_one({"username": inputUsername, "password": pwHash.decode('utf-8')})
         return make_response("U on da boat now!", 200)
 
 @app.route("/login", methods=['POST'])
@@ -49,7 +49,7 @@ def login():
     user = user_collection.find_one({'username' : inputUsername})
 
     if user:
-        if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password']):
+        if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password'].encode('utf-8')):
             resp = make_response("Now ur logged in", 200)
             auth_token = secrets.token_urlsafe(30)
             hashed_auth_token = str(hashlib.sha256(auth_token.encode('utf-8')).hexdigest())
@@ -69,9 +69,9 @@ def create_post():
         author = request.cookies.get('username')
 
         post_collection.insert_one({
-            "title": escape(post_title, quote=False),
-            "description": escape(post_description, quote=False),
-            "author": escape(author, quote=False)
+            "title": escape(post_title, bool=False),
+            "description": escape(post_description, bool=False),
+            "author": escape(author, bool=False)
         })
         return redirect("/", 301)
     else:

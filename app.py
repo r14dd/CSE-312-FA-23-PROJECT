@@ -1,9 +1,10 @@
 import secrets
 
-from flask import Flask, make_response, render_template, request, send_from_directory
+from flask import Flask, make_response, render_template, request, send_from_directory, redirect
 import bcrypt
 import hashlib
 import random
+from html import escape
 
 from pymongo import MongoClient
 mongo_client = MongoClient("mongo")
@@ -62,19 +63,23 @@ def login():
 
 @app.route("/create-post", methods=["POST"])
 def create_post():
-    post_title = request.form['post-title']
-    post_description = request.form['post-description']
-    author = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    if "auth_token" in request.cookies:
+        post_title = request.form['post-title']
+        post_description = request.form['post-description']
+        author = request.cookies.get('username')
 
-    post_collection.insert_one({
-        "title": post_title,
-        "description": post_description,
-        "author": author
-    })
-    return make_response("Go back to see", 200)
-
+        post_collection.insert_one({
+            "title": escape(post_title),
+            "description": escape(post_description),
+            "author": escape(author)
+        })
+        #return make_response(render_template('index.html'), 301)
+        return redirect("/", 301)
+    else:
+        return make_response("Please login to make a post.", 401)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)
 
+# posts need to be displayed on every device
 

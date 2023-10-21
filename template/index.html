@@ -12,10 +12,15 @@
         <div id="main-content">
             <h2>Posts</h2>
             {% for post in posts %}
-    <div class="post">
-        <h3>{{ post.title }} by <span class="username">{{ post.author }}</span></h3>
-        <p>{{ post.description }}</p>
-    </div>
+
+<div class="post">
+    <h3>{{ post.title }} by <span class="username">{{ post.author }}</span></h3>
+    <p>{{ post.description }}</p>
+    <form action="/like-post/{{post._id}}" method="post" class="like-form">
+        <button type="submit" class="like-button">Like</button>
+    </form>
+    <span>Likes: {{ post.likes|length }}</span>
+</div>
 {% endfor %}
 
             <h3>Create a Post</h3>

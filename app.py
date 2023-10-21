@@ -69,9 +69,9 @@ def create_post():
         author = request.cookies.get('username')
 
         post_collection.insert_one({
-            "title": escape(post_title, bool=False),
-            "description": escape(post_description, bool=False),
-            "author": escape(author, bool=False)
+            "title": escape(post_title, quote=False),
+            "description": escape(post_description, quote=False),
+            "author": escape(author, quote=False)
         })
         return redirect("/", 301)
     else:

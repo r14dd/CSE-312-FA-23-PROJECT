@@ -7,23 +7,44 @@
     </head>
 
     <body>
-        <h1>Title</h1>
+        <h1>X.com</h1>
 
-        <h2> Hello, {{ usr }}</h2> 
+        <div id="main-content">
+            <h2>Posts</h2>
+            {% for post in posts %}
+    <div class="post">
+        <h3>{{ post.title }} by <span class="username">{{ post.author }}</span></h3>
+        <p>{{ post.description }}</p>
+    </div>
+{% endfor %}
 
-        <h3>Register</h3>
-        <form action="/register" id="reg-form" method="post" enctype="multipart/form-data">
-            <input type="text" name="username" placeholder="Username"/>
-            <input type="password" name="password" placeholder="Password"/>
-            <input type="submit" value="Register"/>
-        </form>
+            <h3>Create a Post</h3>
+            <form action="/create-post" method="post">
+                <input type="text" name="post-title" placeholder="Post Title" required />
+                <textarea name="post-description" placeholder="Post Description" required></textarea>
+                <input type="submit" value="Create Post" />
+            </form>
+        </div>
 
-        <h3>Login</h3>
-        <form action="/login" id="login-form" method="post" enctype="multipart/form-data">
-            <input type="text" name="username" placeholder="Username"/>
-            <input type="password" name="password" placeholder="Password"/>
-            <input type="submit" value="Login"/>
-        </form>
+        <div id="side-bar">
+            <h2>Hello, {{ usr }}</h2>
+
+            <h3>Register</h3>
+            <form action="/register" id="reg-form" method="post" enctype="multipart/form-data">
+                <input type="text" name="username" placeholder="Username" required />
+                <input type="password" name="password" placeholder="Password" required />
+                <input type="submit" value="Register" />
+            </form>
+
+            <h3>Login</h3>
+            <form action="/login" id="login-form" method="post" enctype="multipart/form-data">
+                <input type="text" name="username" placeholder="Username" required />
+                <input type="password" name="password" placeholder="Password" required />
+                <input type="submit" value="Login" />
+            </form>
+        </div>
+
+        <div style="clear: both;"></div>
 
     </body>
 </html>

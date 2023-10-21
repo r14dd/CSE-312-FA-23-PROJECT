@@ -10,16 +10,21 @@ mongo_client = MongoClient("mongo")
 db = mongo_client["cse312"]
 user_collection = db["users"]
 token_collection = db["tokens"]
+post_collection=db["posts"]
+all_users=user_collection.find()
+for p in all_users:
+    print(p)
 
 app = Flask(__name__,template_folder='template')
 
 @app.route("/")
 def indexPage():
+    all_posts = post_collection.find()
     if "auth_token" in request.cookies:
         usr = request.cookies.get('username')
-        return render_template('index.html', usr=usr)
+        return render_template('index.html', usr=usr, posts=all_posts)
     else:
-        return render_template('index.html', usr="Guest")
+        return render_template('index.html', usr="Guest", posts=all_posts)
 
 @app.route("/static/style.css")
 def css():
@@ -54,6 +59,20 @@ def login():
         return make_response("Invalid username or password", 401)
     else:
         return make_response("You have to register first!", 401)
+
+@app.route("/create-post", methods=["POST"])
+def create_post():
+    post_title = request.form['post-title']
+    post_description = request.form['post-description']
+    author = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+
+    post_collection.insert_one({
+        "title": post_title,
+        "description": post_description,
+        "author": author
+    })
+    return make_response("Go back to see", 200)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)

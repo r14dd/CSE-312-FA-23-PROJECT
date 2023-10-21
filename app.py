@@ -69,17 +69,13 @@ def create_post():
         author = request.cookies.get('username')
 
         post_collection.insert_one({
-            "title": escape(post_title),
-            "description": escape(post_description),
-            "author": escape(author)
+            "title": escape(post_title, bool=False),
+            "description": escape(post_description, bool=False),
+            "author": escape(author, bool=False)
         })
-        #return make_response(render_template('index.html'), 301)
         return redirect("/", 301)
     else:
         return make_response("Please login to make a post.", 401)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)
-
-# posts need to be displayed on every device
-

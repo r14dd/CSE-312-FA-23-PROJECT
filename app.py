@@ -64,6 +64,7 @@ def create_post():
     })
     return make_response("Go back to see", 200)
 
+#we dont need this now boyyyy
 @app.route("/like-post/<post_id>", methods=["POST"])
 def like_post(post_id):
     username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
@@ -72,12 +73,11 @@ def like_post(post_id):
     if username == "Guest":
         return make_response("You need to be logged in to like a post", 401)
 
-    if username in post['likes']:
-        post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
-        return make_response("Unliked", 200)
-    else:
+    if username not in post['likes']:
         post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
         return make_response("Liked", 200)
+    else:
+        return make_response("You have already liked this post", 400)
 
 
 @app.route("/register", methods=["POST"])
@@ -109,6 +109,42 @@ def login():
     else:
         return make_response("You have to register first!", 401)
 
+#We dont need this now boyyyy
+@app.route("/unlike-post/<post_id>", methods=["POST"])
+def unlike_post(post_id):
+    username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    post = post_collection.find_one({"_id": post_id})
+
+    if username == "Guest":
+        return make_response("You need to be logged in to unlike a post", 401)
+
+    if username in post['likes']:
+        post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
+        return make_response("Unliked", 200)
+    else:
+        return make_response("You haven't liked this post yet", 400)
+
+@app.route("/like-or-unlike-post/<post_id>", methods=["POST"])
+def like_or_unlike_post(post_id):
+    action = request.form['action']
+    username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    post = post_collection.find_one({"_id": post_id})
+
+    if username == "Guest":
+        return make_response("You need to be logged in to like or unlike a post", 401)
+
+    if action == "like":
+        if username not in post['likes']:
+            post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
+            return make_response("Liked", 200)
+        else:
+            return make_response("You have already liked this post", 400)
+    elif action == "unlike":
+        if username in post['likes']:
+            post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
+            return make_response("Unliked", 200)
+        else:
+            return make_response("You haven't liked this post yet", 400)
 
 
 

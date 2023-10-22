@@ -56,8 +56,8 @@ def create_post():
     else:
         post_collection.insert_one({
             "_id": post_id,
-            "title": escape(post_title, quote=False),
-            "description": escape(post_description, quote=False),
+            "title": post_title,
+            "description": post_description,
             "author": author,
             "likes": []
         })

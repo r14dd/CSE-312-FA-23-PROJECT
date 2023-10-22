@@ -129,7 +129,7 @@ def like_or_unlike_post(post_id):
     else:
         username = "Guest"
 
-    post = post_collection.find_one({"_id": post_id})  # Use '_id' instead of 'id'
+    post = post_collection.find_one({"_id": post_id})  
 
     if not post:
         return make_response("Post not found", 404)
@@ -137,7 +137,6 @@ def like_or_unlike_post(post_id):
     if username == "Guest":
         return make_response("You need to be logged in to like or unlike a post", 401)
 
-    # Ensure 'likes' field exists and is a list
     if 'likes' not in post:
         post['likes'] = []
 

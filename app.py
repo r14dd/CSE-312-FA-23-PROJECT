@@ -151,14 +151,14 @@ def like_or_unlike_post(post_id):
     if action == "like":
         if username not in post['likes']:
             post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
-            return make_response("Liked", 200)
+            return redirect('/')
         else:
             return make_response("You have already liked this post", 400)
 
     elif action == "unlike":
         if username in post['likes']:
             post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
-            return make_response("Unliked", 200)
+            return redirect('/')
         else:
             return make_response("You haven't liked this post yet", 400)
 

@@ -5,7 +5,6 @@ import bcrypt
 import hashlib
 import random
 
-import string
 
 
 from pymongo import MongoClient
@@ -27,11 +26,8 @@ for p in all_users:
 app = Flask(__name__,template_folder='template')
 
 
-def generate_random_string(length):
-    letters_and_digits = string.ascii_letters + string.digits
-    result_str = ''.join(random.choice(letters_and_digits) for i in range(length))
-    return result_str
-
+def generate_random_string():
+    return str(random.randint(1000, 9999))
 
 @app.route("/")
 def indexPage():
@@ -53,7 +49,7 @@ def create_post():
     post_title = request.form['post-title']
     post_description = request.form['post-description']
     author = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
-    post_id = generate_random_string(10)
+    post_id = generate_random_string()
 
     post_collection.insert_one({
         "_id": post_id,
@@ -127,11 +123,23 @@ def unlike_post(post_id):
 @app.route("/like-or-unlike-post/<post_id>", methods=["POST"])
 def like_or_unlike_post(post_id):
     action = request.form['action']
-    username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
-    post = post_collection.find_one({"_id": post_id})
+
+    if "auth_token" in request.cookies:
+        username = request.cookies.get('username')
+    else:
+        username = "Guest"
+
+    post = post_collection.find_one({"_id": post_id})  # Use '_id' instead of 'id'
+
+    if not post:
+        return make_response("Post not found", 404)
 
     if username == "Guest":
         return make_response("You need to be logged in to like or unlike a post", 401)
+
+    # Ensure 'likes' field exists and is a list
+    if 'likes' not in post:
+        post['likes'] = []
 
     if action == "like":
         if username not in post['likes']:
@@ -139,14 +147,13 @@ def like_or_unlike_post(post_id):
             return make_response("Liked", 200)
         else:
             return make_response("You have already liked this post", 400)
+            
     elif action == "unlike":
         if username in post['likes']:
             post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
             return make_response("Unliked", 200)
         else:
             return make_response("You haven't liked this post yet", 400)
-
-
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)

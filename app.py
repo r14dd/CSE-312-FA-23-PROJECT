@@ -60,7 +60,7 @@ def create_post():
     })
     return make_response("Go back to see", 200)
 
-#we dont need this now boyyyy
+#we dont need this now boyyyy we got sth better and waYYYYY roibest 
 @app.route("/like-post/<post_id>", methods=["POST"])
 def like_post(post_id):
     username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"

@@ -1,0 +1,23 @@
+Index: app.py
+IDEA additional info:
+Subsystem: com.intellij.openapi.diff.impl.patch.BaseRevisionTextPatchEP
+<+>import secrets\n\nfrom flask import Flask, make_response, render_template, request, send_from_directory, redirect\nimport bcrypt\nimport hashlib\nimport random\nfrom html import escape\n\nfrom pymongo import MongoClient\nmongo_client = MongoClient(\"mongo\")\ndb = mongo_client[\"cse312\"]\nuser_collection = db[\"users\"]\ntoken_collection = db[\"tokens\"]\npost_collection=db[\"posts\"]\nall_users=user_collection.find()\nfor p in all_users:\n    print(p)\n\napp = Flask(__name__,template_folder='template')\n\n@app.route(\"/\")\ndef indexPage():\n    all_posts = post_collection.find()\n    if \"auth_token\" in request.cookies:\n        usr = request.cookies.get('username')\n        return render_template('index.html', usr=usr, posts=all_posts)\n    else:\n        return render_template('index.html', usr=\"Guest\", posts=all_posts)\n\n@app.route(\"/static/style.css\")\ndef css():\n    resp = send_from_directory('static', 'style.css')\n    return resp\n\n@app.route(\"/register\", methods=[\"POST\"])\ndef register():\n    if request.method == \"POST\":\n        inputUsername = request.form['username']\n        inputPassword = request.form['password']\n        salt = bcrypt.gensalt()\n        pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)\n        user_collection.insert_one({\"username\": inputUsername, \"password\": pwHash})\n        return make_response(\"U on da boat now!\", 200)\n\n@app.route(\"/login\", methods=['POST'])\ndef login():\n    inputUsername = request.form['username']\n    inputPassword = request.form['password']\n    user = user_collection.find_one({'username' : inputUsername})\n\n    if user:\n        if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password'].encode('utf-8')):\n            resp = make_response(\"Now ur logged in\", 200)\n            auth_token = secrets.token_urlsafe(30)\n            hashed_auth_token = str(hashlib.sha256(auth_token.encode('utf-8')).hexdigest())\n            token_collection.insert_one({\"auth_token\" : hashed_auth_token, \"username\" : user[\"username\"]})\n            resp.set_cookie('auth_token', hashed_auth_token, max_age=3600, httponly=True)\n            resp.set_cookie('username', user['username'], max_age=3600)\n            return resp\n        return make_response(\"Invalid username or password\", 401)\n    else:\n        return make_response(\"You have to register first!\", 401)\n\n@app.route(\"/create-post\", methods=[\"POST\"])\ndef create_post():\n    if \"auth_token\" in request.cookies:\n        post_title = request.form['post-title']\n        post_description = request.form['post-description']\n        author = request.cookies.get('username')\n\n        post_collection.insert_one({\n            \"title\": escape(post_title, bool=False),\n            \"description\": escape(post_description, bool=False),\n            \"author\": escape(author, bool=False)\n        })\n        return redirect(\"/\", 301)\n    else:\n        return make_response(\"Please login to make a post.\", 401)\n\nif __name__ == \"__main__\":\n    app.run(host=\"0.0.0.0\",port=8080,debug=True)\n
+Subsystem: com.intellij.openapi.diff.impl.patch.CharsetEP
+<+>UTF-8
+===================================================================
+diff --git a/app.py b/app.py
+--- a/app.py	(revision cca28f8a63cc2c5a77a5e68699b703dcd9782569)
++++ b/app.py	(date 1697921364583)
+@@ -69,9 +69,9 @@
+         author = request.cookies.get('username')
+ 
+         post_collection.insert_one({
+-            "title": escape(post_title, bool=False),
+-            "description": escape(post_description, bool=False),
+-            "author": escape(author, bool=False)
++            "title": escape(post_title, quote=False),
++            "description": escape(post_description, quote=False),
++            "author": escape(author, quote=False)
+         })
+         return redirect("/", 301)
+     else:

@@ -47,8 +47,8 @@ def css():
 
 @app.route("/create-post", methods=["POST"])
 def create_post():
-    post_title = escape(request.form['post-title'], quote=False)
-    post_description = escape(request.form['post-description'], quote=False)
+    post_title = request.form['post-title']
+    post_description = request.form['post-description']
     author = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
     post_id = generate_random_string()
     if author == "Guest":
@@ -83,22 +83,22 @@ def like_post(post_id):
 @app.route("/register", methods=["POST"])
 def register():
     if request.method == "POST":
-        inputUsername = escape(request.form['username'], quote=False)
+        inputUsername = request.form['username']
         inputPassword = request.form['password']
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
-        user_collection.insert_one({"username": escape(inputUsername, quote=False), "password": pwHash})
+        user_collection.insert_one({"username": inputUsername, "password": pwHash.decode('utf-8')})
         return make_response("Now you are registered!", 200)
 
 
 @app.route("/login", methods=['POST'])
 def login():
-    inputUsername = escape(request.form['password'], quote=False)
+    inputUsername = request.form['password']
     inputPassword = request.form['password']
     user = user_collection.find_one({'username': inputUsername})
 
     if user:
-        if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password']):
+        if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password'].encode('utf-8')):
             resp = make_response("Now ur logged in", 200)
             auth_token = secrets.token_urlsafe(30)
             hashed_auth_token = str(hashlib.sha256(auth_token.encode('utf-8')).hexdigest())

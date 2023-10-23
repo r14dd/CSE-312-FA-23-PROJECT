@@ -47,8 +47,8 @@ def css():
 
 @app.route("/create-post", methods=["POST"])
 def create_post():
-    post_title = request.form['post-title']
-    post_description = request.form['post-description']
+    post_title = escape(request.form['post-title'], quote=False)
+    post_description = escape(request.form['post-description'], quote=False)
     author = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
     post_id = generate_random_string()
     if author == "Guest":
@@ -83,7 +83,7 @@ def like_post(post_id):
 @app.route("/register", methods=["POST"])
 def register():
     if request.method == "POST":
-        inputUsername = request.form['username']
+        inputUsername = escape(request.form['username'], quote=False)
         inputPassword = request.form['password']
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
@@ -161,6 +161,7 @@ def like_or_unlike_post(post_id):
             return redirect('/')
         else:
             return make_response("You haven't liked this post yet", 400)
+
 
 
 if __name__ == "__main__":

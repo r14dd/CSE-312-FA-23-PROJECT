@@ -13,11 +13,7 @@ user_collection = db["users"]
 token_collection = db["tokens"]
 post_collection = db["posts"]
 like_counter = db["likes"]
-# postID->Riad
 
-# when i like
-
-# postID->Riad,Baibhav
 all_users = post_collection.find()
 for p in all_users:
     print(p)
@@ -64,26 +60,12 @@ def create_post():
     return redirect('/')
 
 
-# we dont need this now boyyyy
-@app.route("/like-post/<post_id>", methods=["POST"])
-def like_post(post_id):
-    username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
-    post = post_collection.find_one({"_id": post_id})
-
-    if username == "Guest":
-        return make_response("You need to be logged in to like a post", 401)
-
-    if username not in post['likes']:
-        post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
-        return make_response("Liked", 200)
-    else:
-        return make_response("You have already liked this post", 400)
 
 
 @app.route("/register", methods=["POST"])
 def register():
     if request.method == "POST":
-        inputUsername = request.form['username']
+        inputUsername = escape(request.form['username'])
         inputPassword = request.form['password']
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
@@ -93,7 +75,7 @@ def register():
 
 @app.route("/login", methods=['POST'])
 def login():
-    inputUsername = request.form['password']
+    inputUsername = escape(request.form['username'])
     inputPassword = request.form['password']
     user = user_collection.find_one({'username': inputUsername})
 
@@ -111,20 +93,6 @@ def login():
         return make_response("You have to register first!", 401)
 
 
-# We dont need this now boyyyy
-@app.route("/unlike-post/<post_id>", methods=["POST"])
-def unlike_post(post_id):
-    username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
-    post = post_collection.find_one({"_id": post_id})
-
-    if username == "Guest":
-        return make_response("You need to be logged in to unlike a post", 401)
-
-    if username in post['likes']:
-        post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
-        return make_response("Unliked", 200)
-    else:
-        return make_response("You haven't liked this post yet", 400)
 
 
 @app.route("/like-or-unlike-post/<post_id>", methods=["POST"])

@@ -9,14 +9,11 @@ from pymongo import MongoClient
 
 mongo_client = MongoClient("mongo")
 db = mongo_client["cse312"]
-user_collection = db["users"]
-token_collection = db["tokens"]
-post_collection = db["posts"]
-like_counter = db["likes"]
+users = db["users"]
+posts = db["posts"]
+likes = db["likes"]
 
-all_users = post_collection.find()
-for p in all_users:
-    print(p)
+all_users = posts.find()
 
 app = Flask(__name__, template_folder='template')
 
@@ -27,12 +24,20 @@ def generate_random_string():
 
 @app.route("/")
 def indexPage():
-    all_posts = post_collection.find()
-    if "auth_token" in request.cookies:
-        usr = request.cookies.get('username')
-        return render_template('index.html', usr=usr, posts=all_posts)
+    all_posts = posts.find()
+    auth_token = request.cookies.get("auth_token")
+    if auth_token:
+        # hashed_auth_token = ((hashlib.sha256(auth_token.encode())).hexdigest()).encode()
+        fetchedUser = users.find_one({"auth_token" : auth_token})
+            
+        if fetchedUser:
+            return render_template('index.html', usr=fetchedUser["username"], posts=all_posts)
+            # return render_template('index.html', usr=fetchedUser["username"], posts=all_posts)
+        else:
+            return render_template('index.html', usr="Guest", posts=all_posts)
     else:
-        return render_template('index.html', usr="Guest", posts=all_posts)
+        return render_template('index.html', usr="Guest2", posts=all_posts)
+
 
 
 @app.route("/static/style.css")
@@ -45,12 +50,12 @@ def css():
 def create_post():
     post_title = request.form['post-title']
     post_description = request.form['post-description']
-    author = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    author = request.cookies.get('username') if "auth_token" in request.cookies else "Guest" # change to use placeholder instead of cookie
     post_id = generate_random_string()
     if author == "Guest":
         return redirect('/')
     else:
-        post_collection.insert_one({
+        posts.insert_one({
             "_id": post_id,
             "title": post_title,
             "description": post_description,
@@ -69,7 +74,7 @@ def register():
         inputPassword = request.form['password']
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
-        user_collection.insert_one({"username": inputUsername, "password": pwHash.decode('utf-8')})
+        users.insert_one({"username": inputUsername, "password": pwHash.decode('utf-8')})
         return make_response("Now you are registered!", 200)
 
 
@@ -77,16 +82,16 @@ def register():
 def login():
     inputUsername = escape(request.form['username'])
     inputPassword = request.form['password']
-    user = user_collection.find_one({'username': inputUsername})
+    user = users.find_one({'username': inputUsername})
 
     if user:
         if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password'].encode('utf-8')):
             resp = make_response("Now ur logged in", 200)
             auth_token = secrets.token_urlsafe(30)
-            hashed_auth_token = str(hashlib.sha256(auth_token.encode('utf-8')).hexdigest())
-            token_collection.insert_one({"auth_token": hashed_auth_token, "username": user["username"]})
-            resp.set_cookie('auth_token', hashed_auth_token, max_age=3600, httponly=True)
-            resp.set_cookie('username', user['username'], max_age=3600)
+            # hashed_auth_token = hashlib.sha256(auth_token.encode()).hexdigest()
+            hashed_auth_token = ((hashlib.sha256(auth_token.encode())).hexdigest()).encode()
+            settingUp = users.find_one_and_update({"username" : inputUsername}, {"$set" : {"auth_token" : hashed_auth_token}})
+            resp.set_cookie('auth_token',  , max_age=3600, httponly=True)
             return resp
         return make_response("Invalid username or password", 401)
     else:
@@ -104,7 +109,7 @@ def like_or_unlike_post(post_id):
     else:
         username = "Guest"
 
-    post = post_collection.find_one({"_id": post_id})  # Use '_id' instead of 'id'
+    post = posts.find_one({"_id": post_id})  # Use '_id' instead of 'id'
 
     if not post:
         return make_response("Post not found", 404)
@@ -118,14 +123,14 @@ def like_or_unlike_post(post_id):
 
     if action == "like":
         if username not in post['likes']:
-            post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
+            posts.update_one({"_id": post_id}, {"$push": {"likes": username}})
             return redirect('/')
         else:
             return make_response("You have already liked this post", 400)
 
     elif action == "unlike":
         if username in post['likes']:
-            post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
+            posts.update_one({"_id": post_id}, {"$pull": {"likes": username}})
             return redirect('/')
         else:
             return make_response("You haven't liked this post yet", 400)

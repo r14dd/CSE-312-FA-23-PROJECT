@@ -1,6 +1,6 @@
 import secrets
 
-from flask import Flask, make_response, render_template, request, send_from_directory
+from flask import *
 import bcrypt
 import hashlib
 import random
@@ -30,18 +30,30 @@ def generate_random_string():
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in {'jpg'}  # Allow only JPG images
+           filename.rsplit('.', 1)[1].lower() in {'jpg','png'}  # Allow only JPG images
 
 @app.route("/")
-def indexPage():
+def registerPage():
+    if "auth_token" in request.cookies:
+        return redirect(url_for("index_page"))
+    return render_template("register.html")
+
+@app.route("/login.html")
+def login_render():
+    return render_template("login.html")
+
+@app.route("/index.html")
+def index_page():
     all_posts = post_collection.find()
     if "auth_token" in request.cookies:
         at = request.cookies.get('auth_token')
         usr = token_collection.find_one({"auth_token": at})
         return render_template('index.html', usr=usr["username"], posts=all_posts)
 
-    else:
-        return render_template('index.html', usr="Guest", posts=all_posts)
+
+@app.route("/questionForm.html")
+def questions_page():
+    return render_template("questionForm.html")
 
 @app.route("/static/style.css")
 def css():
@@ -69,19 +81,29 @@ def create_post():
     question_image = request.files.get('question-image')
     image_filename = None
     if question_image and allowed_file(question_image.filename):
-        image_filename = f"{post_id}.jpg"
+        fileExt = question_image.filename.rsplit('.', 1)[1].lower()
+        image_filename = f"{post_id}.{fileExt}"
         question_image.save(os.path.join('static/', image_filename))
 
-    post_collection.insert_one({
-        "_id": post_id,
-        "title": post_title,
-        "description": post_description,
-        "correct_answer": corrent_answer,
-        "author": author,
-        "image": image_filename,
-        "likes": []
-    })
-    return make_response("Quiz question created!", 200)
+        post_collection.insert_one({
+            "_id": post_id,
+            "title": post_title,
+            "description": post_description,
+            "correct_answer": corrent_answer,
+            "author": author,
+            "image": image_filename,
+            "likes": []
+        })
+    else:
+        post_collection.insert_one({
+            "_id": post_id,
+            "title": post_title,
+            "description": post_description,
+            "correct_answer": corrent_answer,
+            "author": author,
+            "likes": []
+        })
+    return redirect(url_for("index_page"))
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -91,7 +113,7 @@ def register():
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
         user_collection.insert_one({"username": inputUsername, "password": pwHash})
-        return make_response("U on da boat now!", 200)
+        return render_template("login.html")
 
 @app.route("/login", methods=['POST'])
 def login():
@@ -101,7 +123,7 @@ def login():
 
     if user:
         if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password']):
-            resp = make_response("Now ur logged in", 200)
+            resp = redirect(url_for("index_page"))
             auth_token = secrets.token_urlsafe(30)
             hashed_auth_token = str(hashlib.sha256(auth_token.encode('utf-8')).hexdigest())
             token_collection.insert_one({"auth_token" : hashed_auth_token, "username" : user["username"]})
@@ -138,16 +160,12 @@ def like_or_unlike_post(post_id):
     if action == "like":
         if username not in post['likes']:
             post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
-            return make_response("Liked", 200)
-        else:
-            return make_response("You have already liked this post", 400)
+        return redirect(url_for("index_page"))
             
     elif action == "unlike":
         if username in post['likes']:
             post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
-            return make_response("Unliked", 200)
-        else:
-            return make_response("You haven't liked this post yet", 400)
+        return redirect(url_for("index_page"))
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)

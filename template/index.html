@@ -8,16 +8,22 @@
 
     <body>
         <h1>X.com</h1>
+        
+        <h2>Hello, {{ usr }}</h2>
+
+        <a href="/questionForm.html">Create a question</a>
 
         <div id="main-content">
             {% for post in posts %}
             <div class="post">
                 <h3>{{ post.title }} by <span class="username">{{ post.author }}</span></h3>
                 <p>{{ post.description }}</p>
-        
-                <div class="post-image">
-                    <img src="{{ url_for('static', filename=post.image) }}" alt="Question Image">
-                </div>
+                
+                {% if post.image %}
+                    <div class="post-image">
+                        <img src="{{ url_for('static', filename=post.image) }}" alt="Question Image">
+                    </div>
+                {% endif %}
         
                 <ol type="A">
                     {% for option in post.options %}
@@ -33,47 +39,6 @@
             </div>
             {% endfor %}
         </div>
-        
-
-            
-
-<h3>Create a Quiz Question</h3>
-<form action="/create-post" method="post" enctype="multipart/form-data">
-    <input type="text" name="post-title" placeholder="Question Title" required />
-    <textarea name="post-description" placeholder="Question Description" required></textarea>
-
-    <!-- Optional image for the question -->
-    <input type="file" name="question-image" accept="image/png, image/jpeg">
-    
-    <!-- Correct answer -->
-    <div>
-        <label>Correct Answer:</label>
-        <input type="text" name="correct-answer" placeholder="Correct Answer" required>
-    </div>
-    
-    <input type="submit" value="Create Question" />
-</form>
-        </div>
-
-        <div id="side-bar">
-            <h2>Hello, {{ usr }}</h2>
-
-            <h3>Register</h3>
-            <form action="/register" id="reg-form" method="post" enctype="multipart/form-data">
-                <input type="text" name="username_reg" placeholder="Username" required />
-                <input type="password" name="password_reg" placeholder="Password" required />
-                <input type="submit" value="Register" />
-            </form>
-
-            <h3>Login</h3>
-            <form action="/login" id="login-form" method="post" enctype="multipart/form-data">
-                <input type="text" name="username_log" placeholder="Username" required />
-                <input type="password" name="password_log" placeholder="Password" required />
-                <input type="submit" value="Login" />
-            </form>
-        </div>
-
-        <div style="clear: both;"></div>
 
     </body>
 </html>

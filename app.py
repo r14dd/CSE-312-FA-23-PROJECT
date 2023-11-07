@@ -53,8 +53,7 @@ def css():
 def create_post():
     post_title = request.form['post-title']
     post_description = request.form['post-description']
-    options = [request.form['option1'], request.form['option2'], request.form['option3']]
-    correct_answer = request.form['correct-answer']
+    corrent_answer = request.form['correct-answer']
     author = ""
     if "auth_token" in request.cookies:
         at = request.cookies.get('auth_token')
@@ -63,8 +62,8 @@ def create_post():
     else:
         author = "Guest"
 
-    if correct_answer not in options:
-        return make_response("The correct answer must be one of the options.", 400)
+    # if correct_answer == answer:
+    #     return make_response("The correct answer must match the .", 400)
 
     post_id = generate_random_string()
     question_image = request.files.get('question-image')
@@ -77,8 +76,7 @@ def create_post():
         "_id": post_id,
         "title": post_title,
         "description": post_description,
-        "options": options,
-        "correct_answer": correct_answer,
+        "correct_answer": corrent_answer,
         "author": author,
         "image": image_filename,
         "likes": []

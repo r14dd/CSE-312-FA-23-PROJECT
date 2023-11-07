@@ -11,15 +11,15 @@ class Database:
     global USERS, POSTS, LIKES
 
     def insertUserIntoTheCollection(username, password):
-        USERS.insert_one({"username" : username, "password" : password})
+        return USERS.insert_one({"username" : username, "password" : password.decode('utf-8')})
 
     def findUser(username):
-        USERS.find_one({"username" : username})
+        return USERS.find_one({"username" : username})
 
     def findToken(token):
-        USERS.find_one({"auth_token" : token})
+        return USERS.find_one({"auth_token" : token})
         
     def addAuthToken(username, token):
-        USERS.update_one({"username" : username}, {"$set" : {"auth_token" : token}})
+        return USERS.update_one({"username" : username}, {"$set" : {"auth_token" : token}})
 
     

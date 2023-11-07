@@ -1,4 +1,4 @@
-from flask import Flask, request, abort, send_from_directory
+from flask import Flask, request, abort, send_from_directory, make_response
 from auth import Register, Login, Root
 app = Flask(__name__, template_folder = 'template')
 
@@ -27,11 +27,11 @@ def loginHandler():
     _username = request.form.get('username_log', None)
     _password = request.form.get('password_log', None)
 
-    if _username != None and _password != None:
+    if _username and _password:
         return Login.login(_username, _password)
 
-    else:
-        abort(400)
+    
+    return make_response("Something went wrong...", 400)
 
 
 

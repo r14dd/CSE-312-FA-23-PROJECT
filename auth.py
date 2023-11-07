@@ -1,34 +1,33 @@
-from flask import redirect, flash, request, render_template
+from flask import redirect, flash, request, render_template, make_response
 import bcrypt, secrets, hashlib
 from db import Database
 
 class Register:
 
     def register(username, password):
-        hashed_password = bcrypt.hashpw(password.encode(), bcrypt.gensalt())
+        hashed_password = bcrypt.hashpw(password.encode('utf-8'), bcrypt.gensalt())
         Database.insertUserIntoTheCollection(username, hashed_password)
+        return make_response("You are now registered.", 301)
 
 class Login:
     def login(username, password):
         current_user = Database.findUser(username)
 
-        if current_user != None:
-            if bcrypt.checkpw(password.encode(), current_user['password']):
+        if current_user:
+            if bcrypt.checkpw(password.encode('utf-8'), current_user['password'].encode('utf-8')):
+                response = make_response("You are now logged in!", 200)
                 random_auth_token = secrets.token_urlsafe(30)
-                hashed_auth_token = hashlib.sha256(random_auth_token.encode()).hexdigest()
+                hashed_auth_token = hashlib.sha256(random_auth_token.encode('utf-8')).hexdigest()
                 Database.addAuthToken(username, hashed_auth_token)
-                flash("Your authentication was successful!", category="message")
-                response = redirect("/", 302)
                 response = response.set_cookie("auth_token", hashed_auth_token, max_age=3600, httponly=True)
                 return response
 
             else:
-                flash("Invalid username or password.", category="error")
-                return redirect("/", 302)
+                return make_response("Invalid username or password.", 200)
 
         else:
-            flash("You need to register an account first.", category="error")
-            return redirect("/", 302)
+            return make_response("You need to register an account first.", 200)
+
 
 class Root:
     def root():

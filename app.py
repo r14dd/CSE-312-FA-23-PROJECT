@@ -60,7 +60,7 @@ def create_post():
         user = token_collection.find_one({"auth_token": at})
         author = user["username"]
     else:
-        author = "Guest"
+        return make_response("You must login to create questions", 400)
 
     # if correct_answer == answer:
     #     return make_response("The correct answer must match the .", 400)

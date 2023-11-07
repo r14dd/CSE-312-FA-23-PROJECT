@@ -36,8 +36,10 @@ def allowed_file(filename):
 def indexPage():
     all_posts = post_collection.find()
     if "auth_token" in request.cookies:
-        usr = request.cookies.get('username')
-        return render_template('index.html', usr=usr, posts=all_posts)
+        at = request.cookies.get('auth_token')
+        usr = token_collection.find_one({"auth_token": at})
+        return render_template('index.html', usr=usr["username"], posts=all_posts)
+
     else:
         return render_template('index.html', usr="Guest", posts=all_posts)
 
@@ -53,7 +55,13 @@ def create_post():
     post_description = request.form['post-description']
     options = [request.form['option1'], request.form['option2'], request.form['option3']]
     correct_answer = request.form['correct-answer']
-    author = request.cookies.get('username', 'Guest')
+    author = ""
+    if "auth_token" in request.cookies:
+        at = request.cookies.get('auth_token')
+        user = token_collection.find_one({"auth_token": at})
+        author = user["username"]
+    else:
+        author = "Guest"
 
     if correct_answer not in options:
         return make_response("The correct answer must be one of the options.", 400)
@@ -100,7 +108,6 @@ def login():
             hashed_auth_token = str(hashlib.sha256(auth_token.encode('utf-8')).hexdigest())
             token_collection.insert_one({"auth_token" : hashed_auth_token, "username" : user["username"]})
             resp.set_cookie('auth_token', hashed_auth_token, max_age=3600, httponly=True)
-            resp.set_cookie('username', user['username'], max_age=3600)
             return resp
         return make_response("Invalid username or password", 401)
     else:
@@ -111,8 +118,11 @@ def login():
 def like_or_unlike_post(post_id):
     action = request.form['action']
 
+    username = ""
     if "auth_token" in request.cookies:
-        username = request.cookies.get('username')
+        at = request.cookies.get('auth_token')
+        user = token_collection.find_one({"auth_token": at})
+        username = user["username"]
     else:
         username = "Guest"
 
@@ -143,4 +153,3 @@ def like_or_unlike_post(post_id):
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)
-

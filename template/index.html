@@ -11,25 +11,62 @@
 
         <div id="main-content">
             {% for post in posts %}
-<div class="post">
-    <h3>{{ post.title }} by <span class="username">{{ post.author }}</span></h3>
-    <p>{{ post.description }}</p>
-    <form action="/like-or-unlike-post/{{post._id}}" method="post">
-        <button type="submit" name="action" value="like">Like</button>
-        <button type="submit" name="action" value="unlike">Unlike</button>
-    </form>
-    <span>Likes: {{ post.likes|length }}</span>
-</div>
-{% endfor %}
+            <div class="post">
+                <h3>{{ post.title }} by <span class="username">{{ post.author }}</span></h3>
+                <p>{{ post.description }}</p>
+        
+                <div class="post-image">
+                    <img src="{{ url_for('static', filename=post.image) }}" alt="Question Image">
+                </div>
+        
+                <ol type="A">
+                    {% for option in post.options %}
+                    <li>{{ option }}</li>
+                    {% endfor %}
+                </ol>
+        
+                <form action="/like-or-unlike-post/{{ post._id }}" method="post">
+                    <button type="submit" name="action" value="like">Like</button>
+                    <button type="submit" name="action" value="unlike">Unlike</button>
+                </form>
+                <span>Likes: {{ post.likes|length }}</span>
+            </div>
+            {% endfor %}
+        </div>
+        
 
             
 
-            <h3>Create a Post</h3>
-            <form action="/create-post" method="post">
-                <input type="text" name="post-title" placeholder="Post Title" required />
-                <textarea name="post-description" placeholder="Post Description" required></textarea>
-                <input type="submit" value="Create Post" />
-            </form>
+<h3>Create a Quiz Question</h3>
+<form action="/create-post" method="post" enctype="multipart/form-data">
+    <input type="text" name="post-title" placeholder="Question Title" required />
+    <textarea name="post-description" placeholder="Question Description" required></textarea>
+
+    <!-- Optional image for the question -->
+    <input type="file" name="question-image" accept="image/png, image/jpeg">
+
+    <!-- Answer options as separate inputs -->
+    <div>
+        <label>Option 1:</label>
+        <input type="text" name="option1" placeholder="Option 1" required>
+    </div>
+    <div>
+        <label>Option 2:</label>
+        <input type="text" name="option2" placeholder="Option 2" required>
+    </div>
+    <div>
+        <label>Option 3:</label>
+        <input type="text" name="option3" placeholder="Option 3" required>
+    </div>
+    
+    <!-- Correct answer -->
+    <div>
+        <label>Correct Answer:</label>
+        <input type="text" name="correct-answer" placeholder="Correct Answer" required>
+    </div>
+    
+    <input type="submit" value="Create Question" />
+</form>
         </div>
 
         <div id="side-bar">
@@ -37,15 +74,15 @@
 
             <h3>Register</h3>
             <form action="/register" id="reg-form" method="post" enctype="multipart/form-data">
-                <input type="text" name="username" placeholder="Username" required />
-                <input type="password" name="password" placeholder="Password" required />
+                <input type="text" name="username_reg" placeholder="Username" required />
+                <input type="password" name="password_reg" placeholder="Password" required />
                 <input type="submit" value="Register" />
             </form>
 
             <h3>Login</h3>
             <form action="/login" id="login-form" method="post" enctype="multipart/form-data">
-                <input type="text" name="username" placeholder="Username" required />
-                <input type="password" name="password" placeholder="Password" required />
+                <input type="text" name="username_log" placeholder="Username" required />
+                <input type="password" name="password_log" placeholder="Password" required />
                 <input type="submit" value="Login" />
             </form>
         </div>

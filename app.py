@@ -1,33 +1,36 @@
 import secrets
-from html import escape
-from flask import Flask, make_response, render_template, request, send_from_directory, redirect
+
+from flask import Flask, make_response, render_template, request, send_from_directory
 import bcrypt
 import hashlib
 import random
+import os
 
 from pymongo import MongoClient
-
 mongo_client = MongoClient("mongo")
 db = mongo_client["cse312"]
 user_collection = db["users"]
 token_collection = db["tokens"]
-post_collection = db["posts"]
-like_counter = db["likes"]
-# postID->Riad
+post_collection=db["postsss"]
+like_counter=db["likes"] 
+#postID->Riad
 
-# when i like
+#when i like 
 
-# postID->Riad,Baibhav
-all_users = post_collection.find()
+#postID->Riad,Baibhav
+all_users=post_collection.find()
 for p in all_users:
     print(p)
 
-app = Flask(__name__, template_folder='template')
+app = Flask(__name__,template_folder='template')
 
 
 def generate_random_string():
     return str(random.randint(1000, 9999))
 
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in {'jpg'}  # Allow only JPG images
 
 @app.route("/")
 def indexPage():
@@ -37,7 +40,6 @@ def indexPage():
         return render_template('index.html', usr=usr, posts=all_posts)
     else:
         return render_template('index.html', usr="Guest", posts=all_posts)
-
 
 @app.route("/static/style.css")
 def css():
@@ -49,36 +51,31 @@ def css():
 def create_post():
     post_title = request.form['post-title']
     post_description = request.form['post-description']
-    author = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    options = [request.form['option1'], request.form['option2'], request.form['option3']]
+    correct_answer = request.form['correct-answer']
+    author = request.cookies.get('username', 'Guest')
+
+    if correct_answer not in options:
+        return make_response("The correct answer must be one of the options.", 400)
+
     post_id = generate_random_string()
-    if author == "Guest":
-        return redirect('/')
-    else:
-        post_collection.insert_one({
-            "_id": post_id,
-            "title": post_title,
-            "description": post_description,
-            "author": author,
-            "likes": []
-        })
-    return redirect('/')
+    question_image = request.files.get('question-image')
+    image_filename = None
+    if question_image and allowed_file(question_image.filename):
+        image_filename = f"{post_id}.jpg"
+        question_image.save(os.path.join('static/', image_filename))
 
-
-# we dont need this now boyyyy
-@app.route("/like-post/<post_id>", methods=["POST"])
-def like_post(post_id):
-    username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
-    post = post_collection.find_one({"_id": post_id})
-
-    if username == "Guest":
-        return make_response("You need to be logged in to like a post", 401)
-
-    if username not in post['likes']:
-        post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
-        return make_response("Liked", 200)
-    else:
-        return make_response("You have already liked this post", 400)
-
+    post_collection.insert_one({
+        "_id": post_id,
+        "title": post_title,
+        "description": post_description,
+        "options": options,
+        "correct_answer": correct_answer,
+        "author": author,
+        "image": image_filename,
+        "likes": []
+    })
+    return make_response("Quiz question created!", 200)
 
 @app.route("/register", methods=["POST"])
 def register():
@@ -87,44 +84,27 @@ def register():
         inputPassword = request.form['password']
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
-        user_collection.insert_one({"username": escape(inputUsername, quote=False), "password": pwHash})
-        return make_response("Now you are registered!", 200)
-
+        user_collection.insert_one({"username": inputUsername, "password": pwHash})
+        return make_response("U on da boat now!", 200)
 
 @app.route("/login", methods=['POST'])
 def login():
-    inputUsername = escape(request.form['password'], quote=False)
+    inputUsername = request.form['username']
     inputPassword = request.form['password']
-    user = user_collection.find_one({'username': inputUsername})
+    user = user_collection.find_one({'username' : inputUsername})
 
     if user:
         if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password']):
             resp = make_response("Now ur logged in", 200)
             auth_token = secrets.token_urlsafe(30)
             hashed_auth_token = str(hashlib.sha256(auth_token.encode('utf-8')).hexdigest())
-            token_collection.insert_one({"auth_token": hashed_auth_token, "username": user["username"]})
+            token_collection.insert_one({"auth_token" : hashed_auth_token, "username" : user["username"]})
             resp.set_cookie('auth_token', hashed_auth_token, max_age=3600, httponly=True)
             resp.set_cookie('username', user['username'], max_age=3600)
             return resp
         return make_response("Invalid username or password", 401)
     else:
         return make_response("You have to register first!", 401)
-
-
-# We dont need this now boyyyy
-@app.route("/unlike-post/<post_id>", methods=["POST"])
-def unlike_post(post_id):
-    username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
-    post = post_collection.find_one({"_id": post_id})
-
-    if username == "Guest":
-        return make_response("You need to be logged in to unlike a post", 401)
-
-    if username in post['likes']:
-        post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
-        return make_response("Unliked", 200)
-    else:
-        return make_response("You haven't liked this post yet", 400)
 
 
 @app.route("/like-or-unlike-post/<post_id>", methods=["POST"])
@@ -136,7 +116,7 @@ def like_or_unlike_post(post_id):
     else:
         username = "Guest"
 
-    post = post_collection.find_one({"_id": post_id})  # Use '_id' instead of 'id'
+    post = post_collection.find_one({"_id": post_id})  
 
     if not post:
         return make_response("Post not found", 404)
@@ -144,24 +124,23 @@ def like_or_unlike_post(post_id):
     if username == "Guest":
         return make_response("You need to be logged in to like or unlike a post", 401)
 
-    # Ensure 'likes' field exists and is a list
     if 'likes' not in post:
         post['likes'] = []
 
     if action == "like":
         if username not in post['likes']:
             post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
-            return redirect('/')
+            return make_response("Liked", 200)
         else:
             return make_response("You have already liked this post", 400)
-
+            
     elif action == "unlike":
         if username in post['likes']:
             post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
-            return redirect('/')
+            return make_response("Unliked", 200)
         else:
             return make_response("You haven't liked this post yet", 400)
 
-
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0",port=8080,debug=True)
+

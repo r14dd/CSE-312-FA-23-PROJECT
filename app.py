@@ -13,11 +13,7 @@ user_collection = db["users"]
 token_collection = db["tokens"]
 post_collection=db["postsss"]
 like_counter=db["likes"] 
-#postID->Riad
 
-#when i like 
-
-#postID->Riad,Baibhav
 all_users=post_collection.find()
 for p in all_users:
     print(p)
@@ -30,8 +26,8 @@ def generate_random_string():
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in {'jpg','png'}  # Allow only JPG images
-
+           filename.rsplit('.', 1)[1].lower() in {'jpg','png'}
+ 
 @app.route("/")
 def registerPage():
     if "auth_token" in request.cookies:
@@ -73,9 +69,6 @@ def create_post():
         author = user["username"]
     else:
         return make_response("You must login to create questions", 400)
-
-    # if correct_answer == answer:
-    #     return make_response("The correct answer must match the .", 400)
 
     post_id = generate_random_string()
     question_image = request.files.get('question-image')

@@ -33,8 +33,10 @@ def generate_random_string():
 def indexPage():
     all_posts = post_collection.find()
     if "auth_token" in request.cookies:
-        usr = request.cookies.get('username')
-        return render_template('index.html', usr=usr, posts=all_posts)
+        at = request.cookies.get('auth_token')
+        usr = token_collection.find_one({"auth_token": at})
+        return render_template('index.html', usr=usr["username"], posts=all_posts)
+
     else:
         return render_template('index.html', usr="Guest", posts=all_posts)
 
@@ -49,7 +51,13 @@ def css():
 def create_post():
     post_title = request.form['post-title']
     post_description = request.form['post-description']
-    author = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    author = ""
+    if "auth_token" in request.cookies:
+        at = request.cookies.get('auth_token')
+        user = token_collection.find_one({"auth_token": at})
+        author = user["username"]
+    else:
+        author = "Guest"
     post_id = generate_random_string()
     if author == "Guest":
         return redirect('/')
@@ -67,7 +75,14 @@ def create_post():
 # we dont need this now boyyyy
 @app.route("/like-post/<post_id>", methods=["POST"])
 def like_post(post_id):
-    username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    # username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    username = ""
+    if "auth_token" in request.cookies:
+        at = request.cookies.get('auth_token')
+        user = token_collection.find_one({"auth_token": at})
+        username = user["username"]
+    else:
+        username = "Guest"
     post = post_collection.find_one({"_id": post_id})
 
     if username == "Guest":
@@ -93,9 +108,11 @@ def register():
 
 @app.route("/login", methods=['POST'])
 def login():
-    inputUsername = request.form['password']
+    inputUsername = request.form['username']
     inputPassword = request.form['password']
+    print(inputUsername, inputPassword)
     user = user_collection.find_one({'username': inputUsername})
+    print(user,"this is the user")
 
     if user:
         if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password'].encode('utf-8')):
@@ -104,7 +121,7 @@ def login():
             hashed_auth_token = str(hashlib.sha256(auth_token.encode('utf-8')).hexdigest())
             token_collection.insert_one({"auth_token": hashed_auth_token, "username": user["username"]})
             resp.set_cookie('auth_token', hashed_auth_token, max_age=3600, httponly=True)
-            resp.set_cookie('username', user['username'], max_age=3600)
+            # resp.set_cookie('username', user['username'], max_age=3600)
             return resp
         return make_response("Invalid username or password", 401)
     else:
@@ -114,7 +131,14 @@ def login():
 # We dont need this now boyyyy
 @app.route("/unlike-post/<post_id>", methods=["POST"])
 def unlike_post(post_id):
-    username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    # username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
+    username = ""
+    if "auth_token" in request.cookies:
+        at = request.cookies.get('auth_token')
+        user = token_collection.find_one({"auth_token": at})
+        username = user["username"]
+    else:
+        username = "Guest"
     post = post_collection.find_one({"_id": post_id})
 
     if username == "Guest":
@@ -131,8 +155,11 @@ def unlike_post(post_id):
 def like_or_unlike_post(post_id):
     action = request.form['action']
 
+    username = ""
     if "auth_token" in request.cookies:
-        username = request.cookies.get('username')
+        at = request.cookies.get('auth_token')
+        user = token_collection.find_one({"auth_token": at})
+        username = user["username"]
     else:
         username = "Guest"
 

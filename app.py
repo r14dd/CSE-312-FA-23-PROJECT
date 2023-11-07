@@ -86,8 +86,8 @@ def create_post():
 @app.route("/register", methods=["POST"])
 def register():
     if request.method == "POST":
-        inputUsername = request.form['username']
-        inputPassword = request.form['password']
+        inputUsername = request.form['username_reg']
+        inputPassword = request.form['password_reg']
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
         user_collection.insert_one({"username": inputUsername, "password": pwHash})
@@ -95,8 +95,8 @@ def register():
 
 @app.route("/login", methods=['POST'])
 def login():
-    inputUsername = request.form['username']
-    inputPassword = request.form['password']
+    inputUsername = request.form['username_log']
+    inputPassword = request.form['password_log']
     user = user_collection.find_one({'username' : inputUsername})
 
     if user:

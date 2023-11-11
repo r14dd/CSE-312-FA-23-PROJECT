@@ -1,0 +1,33 @@
+------ Section A -------
+UBIT Name |   Seat   UBIT Name |   Seat   UBIT Name |   Seat   UBIT Name |   Seat
+----------+-------   ----------+-------   ----------+-------   ----------+-------
+ abdulqay |  R3-21    dhuang44 |   R3-7    joseph55 |  R7-13        rhu6 |  R11-3   
+ achallam |   R1-2    dkessien |  R2-13    joshphil |  R6-21    ricochen |   R1-9   
+ acudeobi |   R8-5    doyoonki |  R6-17    justindv |  R5-21    rohanhal |   R4-9   
+ afreenna |   R3-5    drcollin |  R2-17     jwong92 | R10-10    romanswi | R11-13   
+ agvidals |   R5-9    dstankov |   R6-3    jwschert |   R6-1    rudraaks |  R9-13   
+ ahputter |   R2-3     eakanmu |   R4-3    kamyiusa |  R8-13     skim243 |  R5-17   
+ aidenfer | R10-12     ecanton |  R3-11    kbschuch |   R1-4      slogin |  R6-19   
+ akshatag |  R4-21    elliotpa |  R3-13    kjiang23 |  R11-4    sumanyuj |  R7-11   
+ aleksein |  R5-19    emariwil |   R8-9     kldiouf |  R11-6    sushilmu |  R4-13   
+ alexanef |  R11-1    ewestpfa |   R2-5       kpang |  R10-4      tcroma |   R2-1   
+ alrafimo | R11-10     ezhang8 |  R10-3     lunalei |  R1-11    thomashs |   R6-7   
+ anaselam |  R8-15    fansari2 |   R3-3    mahulhud |   R4-5    tmburket |   R5-5   
+ andempse |   R3-9     fssaeed |  R9-15    marieleo |  R5-15    trmcmaho |   R9-9   
+  aramtel |   R4-1    gullerya |  R9-11    markokop |  R11-2    tuyisabe |   R6-9   
+ arnavsaw |   R1-3    hamzaans |  R10-6    mdciraol |  R7-19    vatsalla |  R6-15   
+ ashwaqal |  R8-19    haoningw |   R2-9    mingihon |  R2-11     vchen55 | R10-16   
+ avmangin | R11-14    haoyanga |   R8-7     mleung8 |   R7-3    vipassan |  R3-19   
+  bdfarhi |  R8-11    holdenen |   R8-3     mnazeem |   R8-1      vyang3 |  R6-11   
+ bilalzaf |  R5-11      hzhu29 |  R4-15     mrdugan |  R9-17    wenqizhe |  R4-19   
+ birwasal |   R7-7     ibislam |  R8-21    mrliddia |  R6-13    wenxuanh |  R5-13   
+ bjunuzov |   R9-7    isaacpan |  R1-12    naomiari |  R10-1     wli3563 |   R6-5   
+   chuyck |   R9-1    jcejiogu |  R2-19    nbonikel |   R7-5    wyattpre |   R9-3   
+ cjbellig |  R4-17    jchen487 |  R7-15    nxfergus | R10-14    ychen388 |   R2-7   
+  cjhenry |   R5-3       jcmui |   R1-7    orniepay |  R11-8    yiwentan | R10-20   
+  cmsingo |  R2-15    jepodbie | R11-12    pdtackle |   R4-7    yunchaej |  R8-17   
+ coltonkr |  R7-21    jjwaalan |  R2-21    phimarsh |   R1-5    zhikangx |  R9-21   
+ dashawne |  R10-8       jlao3 |   R5-1     qijiewu |   R7-1    ziyadmoh |  R3-15   
+ dauletmu |  R9-19     jliu294 | R10-18       qipan |   R9-5     zzhou42 |   R7-9   
+  dchen86 |   R3-1      jmcox3 |  R7-17    rahman76 |   R5-7   
+ deanmeku |  R3-17    joeynorm |   R1-1     rchan34 |  R4-11

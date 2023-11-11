@@ -23,7 +23,6 @@ for p in all_users:
 app = Flask(__name__,template_folder='template')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
-
 def generate_random_string():
     return str(random.randint(1000, 9999))
 
@@ -106,6 +105,7 @@ def register():
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
         user_collection.insert_one({"username": inputUsername, "password": pwHash})
+        user_collection.update_many({}, {"$set": {"answered_questions": []}})
         return render_template("login.html")
 
 @app.route("/login", methods=['POST'])
@@ -140,10 +140,25 @@ def like_or_unlike_post(post_id):
     
     post = post_collection.find_one({"_id": post_id})  
     print(post)
+    if 'likes' not in post:
+        post['likes'] = []
+
 
     correctAns=post["correct_answer"]
+
     if(correctAns==action):
-        return make_response("correct ", 200)
+        if username not in post['likes']:
+            post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
+
+            return make_response("correct ", 200)
+        else:
+            return make_response("You have attempted this twice ", 200)
+    else:
+        if username not in post['likes']:
+            return make_response("incorrect ", 200)
+        else:
+
+            return make_response("Incorrect and You have attempted this twice", 200)
     print("Correct ans is "+correctAns)
     
     return redirect(url_for("index_page"))

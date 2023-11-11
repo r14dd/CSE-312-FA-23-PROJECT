@@ -53,10 +53,8 @@ function addPostToDOM(post) {
     postHtml += '</ol>';
 
     postHtml += '<form action="/like-or-unlike-post/' + post._id + '" method="post">' +
-                '<button type="submit" name="action" value="like">Like</button>' +
-                '<button type="submit" name="action" value="unlike">Unlike</button>' +
+                ' <input type="text" name="action">' +
                 '</form>' +
-                '<span>Likes: ' + post.likes.length + '</span>' +
                 '</div>';
 
     var mainContentElement = document.getElementById('main-content');
@@ -75,7 +73,16 @@ function addPostToDOM(post) {
             <div class="post">
                 <h3>{{ post.title }} by <span class="username">{{ post.author }}</span></h3>
                 <p>{{ post.description }}</p>
-                
+                {% if post.author==usr %}
+                <form action="/like-or-unlike-post/{{ post._id }}" method="post" hidden>
+                    <input type="text" name="action">
+                </form>
+                {% else %}
+                <form action="/like-or-unlike-post/{{ post._id }}" method="post">
+                    <input type="text" name="action">
+
+                </form>
+                {% endif %}
                 {% if post.image %}
                     <div class="post-image">
                         <img src="{{ url_for('static', filename=post.image) }}" alt="Question Image">
@@ -83,11 +90,7 @@ function addPostToDOM(post) {
                 {% endif %}
         
                 
-                <form action="/like-or-unlike-post/{{ post._id }}" method="post">
-                    <input type="text" name="action">
-
-                </form>
-                <span>Likes: {{ post.likes|length }}</span>
+                
             </div>
             {% endfor %}
         </div>

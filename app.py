@@ -130,7 +130,7 @@ def login():
 @app.route("/like-or-unlike-post/<post_id>", methods=["POST"])
 def like_or_unlike_post(post_id):
     action = request.form['action']
-
+    
     username = ""
     if "auth_token" in request.cookies:
         at = request.cookies.get('auth_token')
@@ -139,26 +139,6 @@ def like_or_unlike_post(post_id):
     else:
         username = "Guest"
 
-    post = post_collection.find_one({"_id": post_id})  
-
-    if not post:
-        return make_response("Post not found", 404)
-
-    if username == "Guest":
-        return make_response("You need to be logged in to like or unlike a post", 401)
-
-    if 'likes' not in post:
-        post['likes'] = []
-
-    if action == "like":
-        if username not in post['likes']:
-            post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
-        return redirect(url_for("index_page"))
-            
-    elif action == "unlike":
-        if username in post['likes']:
-            post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
-        return redirect(url_for("index_page"))
-
+    return redirect(url_for("index_page"))
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)

@@ -13,7 +13,7 @@ mongo_client = MongoClient("mongo")
 db = mongo_client["cse312"]
 user_collection = db["users"]
 token_collection = db["tokens"]
-post_collection=db["postsss"]
+post_collection=db["postsds"]
 like_counter=db["likes"] 
 
 all_users=post_collection.find()
@@ -130,7 +130,6 @@ def login():
 @app.route("/like-or-unlike-post/<post_id>", methods=["POST"])
 def like_or_unlike_post(post_id):
     action = request.form['action']
-    
     username = ""
     if "auth_token" in request.cookies:
         at = request.cookies.get('auth_token')
@@ -138,7 +137,17 @@ def like_or_unlike_post(post_id):
         username = user["username"]
     else:
         username = "Guest"
+    
+    post = post_collection.find_one({"_id": post_id})  
+    print(post)
 
+    correctAns=post["correct_answer"]
+    if(correctAns==action):
+        return make_response("correct ", 200)
+    print("Correct ans is "+correctAns)
+    
     return redirect(url_for("index_page"))
+    
+
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)

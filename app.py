@@ -5,6 +5,8 @@ import bcrypt
 import hashlib
 import random
 import os
+from flask_socketio import SocketIO, emit
+
 
 from pymongo import MongoClient
 mongo_client = MongoClient("mongo")
@@ -19,6 +21,7 @@ for p in all_users:
     print(p)
 
 app = Flask(__name__,template_folder='template')
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 
 def generate_random_string():
@@ -61,7 +64,7 @@ def css():
 def create_post():
     post_title = request.form['post-title']
     post_description = request.form['post-description']
-    corrent_answer = request.form['correct-answer']
+    correct_answer = request.form['correct-answer']
     author = ""
     if "auth_token" in request.cookies:
         at = request.cookies.get('auth_token')
@@ -78,24 +81,21 @@ def create_post():
         image_filename = f"{post_id}.{fileExt}"
         question_image.save(os.path.join('static/', image_filename))
 
-        post_collection.insert_one({
-            "_id": post_id,
-            "title": post_title,
-            "description": post_description,
-            "correct_answer": corrent_answer,
-            "author": author,
-            "image": image_filename,
-            "likes": []
-        })
-    else:
-        post_collection.insert_one({
-            "_id": post_id,
-            "title": post_title,
-            "description": post_description,
-            "correct_answer": corrent_answer,
-            "author": author,
-            "likes": []
-        })
+    new_post = {
+        "_id": post_id,
+        "title": post_title,
+        "description": post_description,
+        "correct_answer": correct_answer,
+        "author": author,
+        "likes": []
+    }
+    if image_filename:
+        new_post['image'] = image_filename
+
+    post_collection.insert_one(new_post)
+    # Emit the new post to all clients
+    emit('new_post', new_post, namespace='/', broadcast=True)
+
     return redirect(url_for("index_page"))
 
 @app.route("/register", methods=["POST"])

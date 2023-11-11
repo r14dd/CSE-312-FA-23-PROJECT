@@ -4,9 +4,75 @@
     <head>
         <title>Project</title>
         <link rel="stylesheet" href="/static/style.css">
+        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+
     </head>
 
     <body>
+        <script>
+            var socket = io.connect('http://' + document.domain + ':' + location.port);
+
+socket.on('new_post', function(post) {
+    // Assuming you have a function to add a post to the DOM:
+    addPostToDOM(post);
+});
+socket.on('connect', function() {
+      console.log('Websocket connected!');
+      // You can start the timer on connection
+      socket.emit('start_timer', {data: 'User has connected!'});
+  });
+
+  // Function to submit an answer
+  function submitAnswer(option) {
+      socket.emit('submit_answer', {answer: option});
+  }
+
+  // Listen for the 'timer' event to update the timer on the webpage
+  socket.on('timer', function(data) {
+      console.log('Time Remaining: ' + data.time_remaining);
+      // Update the timer on the page
+      // document.getElementById('timer').innerText = data.time_remaining;
+  });
+
+  // Listen for the 'question_graded' event to handle the graded question
+  socket.on('question_graded', function(data) {
+      console.log('Question Graded: ' + data.result);
+      // Update the page to show the result
+      // document.getElementById('result').innerText = data.result;
+  });
+
+function addPostToDOM(post) {
+    // Start building the HTML string for the post
+    var postHtml = '<div class="post">' +
+                   '<h3>' + post.title + ' by <span class="username">' + post.author + '</span></h3>' +
+                   '<p>' + post.description + '</p>';
+
+    // If there is an image, add an image element
+    if(post.image) {
+        postHtml += '<div class="post-image">' +
+                    '<img src="/static/' + post.image + '" alt="Question Image">' +
+                    '</div>';
+    }
+
+    // Assume post.options is an array of options for the MCQ
+    postHtml += '<ol type="A">';
+   
+    postHtml += '</ol>';
+
+    // Add the form for liking/unliking the post
+    postHtml += '<form action="/like-or-unlike-post/' + post._id + '" method="post">' +
+                '<button type="submit" name="action" value="like">Like</button>' +
+                '<button type="submit" name="action" value="unlike">Unlike</button>' +
+                '</form>' +
+                '<span>Likes: ' + post.likes.length + '</span>' +
+                '</div>';
+
+    // Insert the new post HTML into the main-content div
+    var mainContentElement = document.getElementById('main-content');
+    mainContentElement.innerHTML += postHtml;
+}
+
+        </script>
         <h1>X.com</h1>
         
         <h2>Hello, {{ usr }}</h2>

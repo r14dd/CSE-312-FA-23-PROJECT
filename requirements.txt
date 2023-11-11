@@ -3,3 +3,4 @@ flask
 bcrypt
 flask-sock
 flask-login
+flask_socketio

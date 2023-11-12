@@ -29,7 +29,7 @@ def generate_random_string():
 
 def allowed_file(filename):
     return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in {'jpg','png'}
+           filename.rsplit('.', 1)[1].lower() in {'jpg','png','jpeg'}
  
 @app.route("/")
 def registerPage():

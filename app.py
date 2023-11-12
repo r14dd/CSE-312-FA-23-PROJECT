@@ -1,4 +1,5 @@
 import secrets
+
 from flask import *
 import bcrypt
 import hashlib
@@ -13,10 +14,8 @@ mongo_client = MongoClient("mongo")
 db = mongo_client["cse312"]
 user_collection = db["users"]
 token_collection = db["tokens"]
-post_collection=db["poster"]
+post_collection=db["postsds"]
 like_counter=db["likes"] 
-grade_collection = db["grades"]
-
 
 all_users=post_collection.find()
 for p in all_users:
@@ -24,57 +23,6 @@ for p in all_users:
 
 app = Flask(__name__,template_folder='template')
 socketio = SocketIO(app, cors_allowed_origins="*")
-
-def grade_submissions(question_id):
-    """Grade all submissions for a question."""
-    question = post_collection.find_one({"_id": question_id})
-    correct_answer = question['correct_answer']
-    submissions = question.get('likes', [])
-    
-    graded_submissions = []
-    for user in submissions:
-        grade = "Correct" if user == correct_answer else "Incorrect"
-        graded_submissions.append({"username": user, "grade": grade})
-
-    post_collection.update_one(
-        {"_id": question_id},
-        {"$set": {"graded_submissions": graded_submissions}}
-    )
-
-@app.route("/end-question/<question_id>", methods=["POST"])
-def end_question(question_id):
-    grade_submissions(question_id)
-    return '', 204  # No content to return
-
-
-@app.route("/my-grades")
-def view_my_grades():
-    """View grades for the logged-in user."""
-    if "auth_token" in request.cookies:
-        at = request.cookies.get('auth_token')
-        user = token_collection.find_one({"auth_token": at})
-        if user:
-            grades = grade_collection.find({"username": user["username"]})
-            return render_template("my_grades.html", grades=grades)
-        else:
-            return redirect(url_for("login_render"))
-    else:
-        return redirect(url_for("login_render"))
-
-@app.route("/gradebook/<question_id>")
-def view_gradebook(question_id):
-    """View all grades for a question created by the logged-in user."""
-    if "auth_token" in request.cookies:
-        at = request.cookies.get('auth_token')
-        user = token_collection.find_one({"auth_token": at})
-        question = post_collection.find_one({"_id": question_id})
-        if question and question['author'] == user['username']:
-            grades = grade_collection.find({"question_id": question_id})
-            return render_template("gradebook.html", grades=grades, question=question)
-        else:
-            return make_response("Unauthorized", 401)
-    else:
-        return redirect(url_for("login_render"))
 
 def generate_random_string():
     return str(random.randint(1000, 9999))
@@ -105,6 +53,7 @@ def index_page():
 @app.route("/questionForm.html")
 def questions_page():
     return render_template("questionForm.html")
+
 
 @app.route("/static/style.css")
 def css():
@@ -182,25 +131,88 @@ def login():
         return make_response("You have to register first!", 401)
 
 
+
 @app.route("/like-or-unlike-post/<post_id>", methods=["POST"])
 def like_or_unlike_post(post_id):
-    user_answer = request.form['action']
+    action = request.form['action']
+    username = "Guest"  # Default to Guest if no auth token is found
+
+    # Check for user authentication
+    if "auth_token" in request.cookies:
+        at = request.cookies.get('auth_token')
+        user = token_collection.find_one({"auth_token": at})
+        if user:
+            username = user["username"]
+
     post = post_collection.find_one({"_id": post_id})
-
-    if post:
-        correct_answer = post['correct_answer']
-        user = "Guest"  # Replace with actual user identification logic
-        is_correct = user_answer == correct_answer
-
-        # Update the post with the user's answer and whether it was correct
-        post_collection.update_one(
-            {"_id": post_id},
-            {"$push": {"answers": {"user": user, "is_correct": is_correct}}}
-        )
-
-        return redirect(url_for("index_page"))
-    else:
+    if not post:
         return "Post not found", 404
+
+    # Check if the user has already answered
+    existing_answer = next((ans for ans in post.get('answers', []) if ans['user'] == username), None)
+    if existing_answer:
+        return make_response("You have already answered this question", 200)
+
+    # Determine if the answer is correct
+    is_correct = action == post['correct_answer']
+
+    # Update the post with the user's answer and its correctness
+    post_collection.update_one(
+        {"_id": post_id},
+        {"$push": {"answers": {"user": username, "is_correct": is_correct}}}
+    )
+
+    return make_response("Correct" if is_correct else "Incorrect", 200)
+
+@app.route("/my-answers")
+def my_answers():
+    if "auth_token" not in request.cookies:
+        return redirect(url_for("login_render"))  # Or your login page
+
+    at = request.cookies.get('auth_token')
+    user = token_collection.find_one({"auth_token": at})
+    if not user:
+        return redirect(url_for("login_render"))  # Or your login page
+
+    username = user["username"]
+    all_posts = post_collection.find()
+
+    user_answers = []
+    for post in all_posts:
+        for answer in post.get('answers', []):
+            if answer['user'] == username:
+                user_answers.append({
+                    'question': post['title'],
+                    'your_answer': answer['is_correct']
+                })
+
+    return render_template('my_answers.html', user_answers=user_answers)
+
+    
+@app.route("/my-posts")
+def my_posts():
+    if "auth_token" not in request.cookies:
+        return redirect(url_for("login_render"))  # Or your login page
+
+    at = request.cookies.get('auth_token')
+    user = token_collection.find_one({"auth_token": at})
+    if not user:
+        return redirect(url_for("login_render"))  # Or your login page
+
+    username = user["username"]
+    user_posts = post_collection.find({"author": username})
+
+    posts_with_answers = []
+    for post in user_posts:
+        post_info = {
+            'id': post['_id'],
+            'title': post['title'],
+            'description': post['description'],
+            'answers': post.get('answers', [])
+        }
+        posts_with_answers.append(post_info)
+
+    return render_template('my_posts.html', posts=posts_with_answers)
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)

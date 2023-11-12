@@ -1,0 +1,31 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Posts</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>My Posts</h1>
+
+    <div id="posts">
+        {% for post in posts %}
+        <div class="post">
+            <h3>{{ post.title }}</h3>
+            <p>{{ post.description }}</p>
+            <h4>Answers:</h4>
+            {% if post.answers %}
+            <ul>
+                {% for answer in post.answers %}
+                <li>{{ answer.user }} - <strong>{{ 'Correct' if answer.is_correct else 'Incorrect' }}</strong></li>
+                {% endfor %}
+            </ul>
+            {% else %}
+            <p>No answers yet.</p>
+            {% endif %}
+        </div>
+        {% endfor %}
+    </div>
+
+    <a href="/index.html">Back to Main Page</a>
+</body>
+</html>

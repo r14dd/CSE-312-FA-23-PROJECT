@@ -1,0 +1,23 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>My Answers</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>My Answers</h1>
+
+    <div id="answers">
+        {% for answer in user_answers %}
+        <div class="answer">
+            <p>Question: {{ answer.question }}</p>
+            <p>Your answer was: <strong>{{ 'Correct' if answer.your_answer else 'Incorrect' }}</strong></p>
+        </div>
+        {% else %}
+        <p>You haven't answered any questions yet.</p>
+        {% endfor %}
+    </div>
+
+    <a href="/index.html">Back to Questions</a>
+</body>
+</html>

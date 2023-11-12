@@ -22,41 +22,23 @@
         });
 
         function startTimer(postId, expirationTime) {
-    var timerElement = document.getElementById(`timer-${postId}`);
-    var answerInput = document.getElementById(`answer-input-${postId}`);
+            var timerElement = document.getElementById(`timer-${postId}`);
 
-    var timerInterval = setInterval(function() {
-        var currentTime = Math.floor(Date.now() / 1000);
-        var timeRemaining = expirationTime - currentTime;
+            var timerInterval = setInterval(function() {
+                var currentTime = Math.floor(Date.now() / 1000);
+                var timeRemaining = expirationTime - currentTime;
 
-        if (timeRemaining <= 0) {
-            clearInterval(timerInterval);
-            timerElement.innerText = 'Time is up!';
-            answerInput.value = 'wrong';  // Default 'wrong' answer
-            submitAnswer(postId);  // Function to submit the answer
-        } else {
-            timerElement.innerText = 'Time Remaining: ' + timeRemaining + ' seconds';
+                if (timeRemaining <= 0) {
+                    // Timer has expired, handle as needed (e.g., disable answer submission)
+                    clearInterval(timerInterval);
+                    disableAnswerSubmission(postId);
+                    timerElement.innerText = 'Time Remaining: ' + timeRemaining + ' seconds';
+                } else {
+                    // Update the timer on the page
+                    timerElement.innerText = 'Time Remaining: ' + timeRemaining + ' seconds';
+                }
+            }, 1000);
         }
-    }, 1000);
-}
-
-function submitAnswer(postId) {
-    var form = document.getElementById(`answer-form-${postId}`);
-    form.submit();
-}
-
-        function endQuestion(postId) {
-    fetch('/end-question/' + postId, {
-        method: 'POST'
-    }).then(response => {
-        if(response.ok){
-            console.log('Question ended and graded');
-        } else {
-            console.error('Error ending the question');
-        }
-    });
-}
-
 
         function disableAnswerSubmission(postId) {
             // Disable the answer submission input or take any other actions
@@ -92,10 +74,10 @@ function submitAnswer(postId) {
     <h1>X.com</h1>
     
     <h2>Hello, {{ usr }}</h2>
-<!-- Add this inside the <body> tag where you want the link to appear -->
-    <a href="/my-grades">View My Grades</a>
 
     <a href="/questionForm.html">Create a question</a>
+    <a href="/my-answers">Check Grades</a>
+    <a href="/my-posts">My Posts</a>
 
     <div id="main-content">
         {% for post in posts %}

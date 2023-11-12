@@ -6,7 +6,8 @@ import hashlib
 import random
 import os
 from flask_socketio import SocketIO, emit
-
+import datetime
+import time
 
 from pymongo import MongoClient
 mongo_client = MongoClient("mongo")
@@ -79,6 +80,7 @@ def create_post():
         fileExt = question_image.filename.rsplit('.', 1)[1].lower()
         image_filename = f"{post_id}.{fileExt}"
         question_image.save(os.path.join('static/', image_filename))
+    current_time=datetime.time
 
     new_post = {
         "_id": post_id,
@@ -90,7 +92,8 @@ def create_post():
     }
     if image_filename:
         new_post['image'] = image_filename
-
+    expiration_time = int(time.time()) + 60  # 1 minute duration
+    new_post['expiration_time'] = expiration_time
     post_collection.insert_one(new_post)
     # Emit the new post to all clients
     emit('new_post', new_post, namespace='/', broadcast=True)

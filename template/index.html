@@ -1,99 +1,104 @@
 <!DOCTYPE html>
 
 <html>
-    <head>
-        <title>Project</title>
-        <link rel="stylesheet" href="/static/style.css">
-        <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+<head>
+    <title>Project</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+</head>
 
-    </head>
+<body>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
 
-    <body>
-        <script>
-            var socket = io.connect('http://' + document.domain + ':' + location.port);
+        socket.on('new_post', function(post) {
+            addPostToDOM(post);
+            startTimer(post._id, post.expiration_time);
+        });
 
-socket.on('new_post', function(post) {
-    addPostToDOM(post);
-});
-socket.on('connect', function() {
-      console.log('Websocket connected!');
-      socket.emit('start_timer', {data: 'User has connected!'});
-  });
+        socket.on('connect', function() {
+            console.log('Websocket connected!');
+            socket.emit('start_timer', {data: 'User has connected!'});
+        });
 
-  // Function to submit an answer
-  function submitAnswer(option) {
-      socket.emit('submit_answer', {answer: option});
-  }
+        function startTimer(postId, expirationTime) {
+            var timerElement = document.getElementById(`timer-${postId}`);
 
-  // Listen for the 'timer' event to update the timer on the webpage
-  socket.on('timer', function(data) {
-      console.log('Time Remaining: ' + data.time_remaining);
-      
-  });
+            var timerInterval = setInterval(function() {
+                var currentTime = Math.floor(Date.now() / 1000);
+                var timeRemaining = expirationTime - currentTime;
 
-  socket.on('question_graded', function(data) {
-      console.log('Question Graded: ' + data.result);
-      
-  });
+                if (timeRemaining <= 0) {
+                    // Timer has expired, handle as needed (e.g., disable answer submission)
+                    clearInterval(timerInterval);
+                    disableAnswerSubmission(postId);
+                    timerElement.innerText = 'Time Remaining: ' + timeRemaining + ' seconds';
+                } else {
+                    // Update the timer on the page
+                    timerElement.innerText = 'Time Remaining: ' + timeRemaining + ' seconds';
+                }
+            }, 1000);
+        }
 
-function addPostToDOM(post) {
-    // Start building the HTML string for the post
-    var postHtml = '<div class="post">' +
-                   '<h3>' + post.title + ' by <span class="username">' + post.author + '</span></h3>' +
-                   '<p>' + post.description + '</p>';
+        function disableAnswerSubmission(postId) {
+            // Disable the answer submission input or take any other actions
+            var answerInput = document.getElementById(`answer-input-${postId}`);
+            answerInput.disabled = true;
+        }
 
-    if(post.image) {
-        postHtml += '<div class="post-image">' +
-                    '<img src="/static/' + post.image + '" alt="Question Image">' +
-                    '</div>';
-    }
+        function addPostToDOM(post) {
+            // Start building the HTML string for the post
+            var postHtml = '<div class="post">' +
+                           '<h3>' + post.title + ' by <span class="username">' + post.author + '</span></h3>' +
+                           '<p>' + post.description + '</p>';
 
-    postHtml += '<ol type="A">';
-   
-    postHtml += '</ol>';
+            if(post.image) {
+                postHtml += '<div class="post-image">' +
+                            '<img src="/static/' + post.image + '" alt="Question Image">' +
+                            '</div>';
+            }
 
-    postHtml += '<form action="/like-or-unlike-post/' + post._id + '" method="post">' +
-                ' <input type="text" name="action">' +
-                '</form>' +
-                '</div>';
+            postHtml += '<ol type="A"></ol>';
 
-    var mainContentElement = document.getElementById('main-content');
-    mainContentElement.innerHTML += postHtml;
-}
+            postHtml += '<form action="/like-or-unlike-post/' + post._id + '" method="post">' +
+                        '<input type="text" name="action" id="answer-input-' + post._id + '">' +
+                        '</form>' +
+                        '<div id="timer-' + post._id + '"></div>' +
+                        '</div>';
 
-        </script>
-        <h1>X.com</h1>
-        
-        <h2>Hello, {{ usr }}</h2>
+            var mainContentElement = document.getElementById('main-content');
+            mainContentElement.innerHTML += postHtml;
+        }
+    </script>
 
-        <a href="/questionForm.html">Create a question</a>
+    <h1>X.com</h1>
+    
+    <h2>Hello, {{ usr }}</h2>
 
-        <div id="main-content">
-            {% for post in posts %}
-            <div class="post">
-                <h3>{{ post.title }} by <span class="username">{{ post.author }}</span></h3>
-                <p>{{ post.description }}</p>
-                {% if post.author==usr %}
-                <form action="/like-or-unlike-post/{{ post._id }}" method="post" hidden>
-                    <input type="text" name="action">
-                </form>
-                {% else %}
-                <form action="/like-or-unlike-post/{{ post._id }}" method="post">
-                    <input type="text" name="action">
+    <a href="/questionForm.html">Create a question</a>
 
-                </form>
-                {% endif %}
-                {% if post.image %}
-                    <div class="post-image">
-                        <img src="{{ url_for('static', filename=post.image) }}" alt="Question Image">
-                    </div>
-                {% endif %}
-        
-                
-                
-            </div>
-            {% endfor %}
+    <div id="main-content">
+        {% for post in posts %}
+        <div class="post">
+            <h3>{{ post.title }} by <span class="username">{{ post.author }}</span></h3>
+            <p>{{ post.description }}</p>
+            {% if post.author == usr %}
+            <form action="/like-or-unlike-post/{{ post._id }}" method="post" hidden>
+                <input type="text" name="action" id="answer-input-{{ post._id }}">
+            </form>
+            {% else %}
+            <form action="/like-or-unlike-post/{{ post._id }}" method="post">
+                <input type="text" name="action" id="answer-input-{{ post._id }}">
+            </form>
+            <div id="timer-{{ post._id }}"></div>
+            {% endif %}
+            {% if post.image %}
+                <div class="post-image">
+                    <img src="{{ url_for('static', filename=post.image) }}" alt="Question Image">
+                </div>
+            {% endif %}
         </div>
-
-    </body>
+        {% endfor %}
+    </div>
+</body>
 </html>

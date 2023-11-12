@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Gradebook</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>Gradebook for Question: {{ question.title }}</h1>
+    <div id="grades">
+        {% for grade in grades %}
+            <div class="grade">
+                <p>User: {{ grade.username }}</p>
+                <p>Grade: {{ grade.grade }}</p>
+            </div>
+        {% endfor %}
+    </div>
+    <a href="/index.html">Back to Home</a>
+</body>
+</html>

@@ -1,5 +1,4 @@
 import secrets
-
 from flask import *
 import bcrypt
 import hashlib
@@ -14,8 +13,10 @@ mongo_client = MongoClient("mongo")
 db = mongo_client["cse312"]
 user_collection = db["users"]
 token_collection = db["tokens"]
-post_collection=db["postsds"]
+post_collection=db["poster"]
 like_counter=db["likes"] 
+grade_collection = db["grades"]
+
 
 all_users=post_collection.find()
 for p in all_users:
@@ -23,6 +24,57 @@ for p in all_users:
 
 app = Flask(__name__,template_folder='template')
 socketio = SocketIO(app, cors_allowed_origins="*")
+
+def grade_submissions(question_id):
+    """Grade all submissions for a question."""
+    question = post_collection.find_one({"_id": question_id})
+    correct_answer = question['correct_answer']
+    submissions = question.get('likes', [])
+    
+    graded_submissions = []
+    for user in submissions:
+        grade = "Correct" if user == correct_answer else "Incorrect"
+        graded_submissions.append({"username": user, "grade": grade})
+
+    post_collection.update_one(
+        {"_id": question_id},
+        {"$set": {"graded_submissions": graded_submissions}}
+    )
+
+@app.route("/end-question/<question_id>", methods=["POST"])
+def end_question(question_id):
+    grade_submissions(question_id)
+    return '', 204  # No content to return
+
+
+@app.route("/my-grades")
+def view_my_grades():
+    """View grades for the logged-in user."""
+    if "auth_token" in request.cookies:
+        at = request.cookies.get('auth_token')
+        user = token_collection.find_one({"auth_token": at})
+        if user:
+            grades = grade_collection.find({"username": user["username"]})
+            return render_template("my_grades.html", grades=grades)
+        else:
+            return redirect(url_for("login_render"))
+    else:
+        return redirect(url_for("login_render"))
+
+@app.route("/gradebook/<question_id>")
+def view_gradebook(question_id):
+    """View all grades for a question created by the logged-in user."""
+    if "auth_token" in request.cookies:
+        at = request.cookies.get('auth_token')
+        user = token_collection.find_one({"auth_token": at})
+        question = post_collection.find_one({"_id": question_id})
+        if question and question['author'] == user['username']:
+            grades = grade_collection.find({"question_id": question_id})
+            return render_template("gradebook.html", grades=grades, question=question)
+        else:
+            return make_response("Unauthorized", 401)
+    else:
+        return redirect(url_for("login_render"))
 
 def generate_random_string():
     return str(random.randint(1000, 9999))
@@ -132,40 +184,23 @@ def login():
 
 @app.route("/like-or-unlike-post/<post_id>", methods=["POST"])
 def like_or_unlike_post(post_id):
-    action = request.form['action']
-    username = ""
-    if "auth_token" in request.cookies:
-        at = request.cookies.get('auth_token')
-        user = token_collection.find_one({"auth_token": at})
-        username = user["username"]
+    user_answer = request.form['action']
+    post = post_collection.find_one({"_id": post_id})
+
+    if post:
+        correct_answer = post['correct_answer']
+        user = "Guest"  # Replace with actual user identification logic
+        is_correct = user_answer == correct_answer
+
+        # Update the post with the user's answer and whether it was correct
+        post_collection.update_one(
+            {"_id": post_id},
+            {"$push": {"answers": {"user": user, "is_correct": is_correct}}}
+        )
+
+        return redirect(url_for("index_page"))
     else:
-        username = "Guest"
-    
-    post = post_collection.find_one({"_id": post_id})  
-    print(post)
-    if 'likes' not in post:
-        post['likes'] = []
-
-
-    correctAns=post["correct_answer"]
-
-    if(correctAns==action):
-        if username not in post['likes']:
-            post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
-
-            return make_response("correct ", 200)
-        else:
-            return make_response("You have attempted this twice ", 200)
-    else:
-        if username not in post['likes']:
-            return make_response("incorrect ", 200)
-        else:
-
-            return make_response("Incorrect and You have attempted this twice", 200)
-    print("Correct ans is "+correctAns)
-    
-    return redirect(url_for("index_page"))
-    
+        return "Post not found", 404
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)

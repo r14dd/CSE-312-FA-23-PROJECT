@@ -1,6 +1,7 @@
 import secrets
 
 from flask import *
+from markupsafe import escape
 import bcrypt
 import hashlib
 import random
@@ -87,10 +88,10 @@ def create_post():
 
     new_post = {
         "_id": post_id,
-        "title": post_title,
-        "description": post_description,
-        "correct_answer": correct_answer,
-        "author": author,
+        "title": escape(post_title),
+        "description": escape(post_description),
+        "correct_answer": escape(correct_answer),
+        "author": escape(author),
         "likes": []
     }
     if image_filename:
@@ -106,8 +107,8 @@ def create_post():
 @app.route("/register", methods=["POST"])
 def register():
     if request.method == "POST":
-        inputUsername = request.form['username_reg']
-        inputPassword = request.form['password_reg']
+        inputUsername = escape(request.form['username_reg'])
+        inputPassword = escape(request.form['password_reg'])
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
         user_collection.insert_one({"username": inputUsername, "password": pwHash})
@@ -116,8 +117,8 @@ def register():
 
 @app.route("/login", methods=['POST'])
 def login():
-    inputUsername = request.form['username_log']
-    inputPassword = request.form['password_log']
+    inputUsername = escape(request.form['username_log'])
+    inputPassword = escape(request.form['password_log'])
     user = user_collection.find_one({'username' : inputUsername})
 
     if user:

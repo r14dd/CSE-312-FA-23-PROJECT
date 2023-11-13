@@ -134,13 +134,11 @@ def login():
         return make_response("You have to register first!", 401)
 
 
-
 @app.route("/like-or-unlike-post/<post_id>", methods=["POST"])
 def like_or_unlike_post(post_id):
     action = request.form['action']
     username = "Guest"  # Default to Guest if no auth token is found
 
-    # Check for user authentication
     if "auth_token" in request.cookies:
         at = request.cookies.get('auth_token')
         user = token_collection.find_one({"auth_token": at})
@@ -151,15 +149,12 @@ def like_or_unlike_post(post_id):
     if not post:
         return "Post not found", 404
 
-    # Check if the user has already answered
     existing_answer = next((ans for ans in post.get('answers', []) if ans['user'] == username), None)
     if existing_answer:
         return make_response("You have already answered this question", 200)
 
-    # Determine if the answer is correct
     is_correct = action == post['correct_answer']
 
-    # Update the post with the user's answer and its correctness
     post_collection.update_one(
         {"_id": post_id},
         {"$push": {"answers": {"user": username, "is_correct": is_correct}}}
@@ -170,12 +165,12 @@ def like_or_unlike_post(post_id):
 @app.route("/my-answers")
 def my_answers():
     if "auth_token" not in request.cookies:
-        return redirect(url_for("login_render"))  # Or your login page
+        return redirect(url_for("login_render"))  
 
     at = request.cookies.get('auth_token')
     user = token_collection.find_one({"auth_token": at})
     if not user:
-        return redirect(url_for("login_render"))  # Or your login page
+        return redirect(url_for("login_render")) 
 
     username = user["username"]
     all_posts = post_collection.find()
@@ -216,6 +211,7 @@ def my_posts():
         posts_with_answers.append(post_info)
 
     return render_template('my_posts.html', posts=posts_with_answers)
+
 
 if __name__ == "__main__":
     app.run(host="0.0.0.0",port=8080,debug=True)

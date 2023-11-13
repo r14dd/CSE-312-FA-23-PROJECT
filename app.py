@@ -1,44 +1,61 @@
 import secrets
-from html import escape
-from flask import Flask, make_response, render_template, request, send_from_directory, redirect
+
+from flask import *
+from markupsafe import escape
 import bcrypt
 import hashlib
 import random
+import os
+from flask_socketio import SocketIO, emit
+import datetime
+import time
 
 from pymongo import MongoClient
-
 mongo_client = MongoClient("mongo")
 db = mongo_client["cse312"]
 user_collection = db["users"]
 token_collection = db["tokens"]
-post_collection = db["posts"]
-like_counter = db["likes"]
-# postID->Riad
+post_collection=db["postsds"]
+like_counter=db["likes"] 
 
-# when i like
-
-# postID->Riad,Baibhav
-all_users = post_collection.find()
+all_users=post_collection.find()
 for p in all_users:
     print(p)
 
-app = Flask(__name__, template_folder='template')
-
+app = Flask(__name__,template_folder='template')
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 def generate_random_string():
     return str(random.randint(1000, 9999))
 
-
+def allowed_file(filename):
+    return '.' in filename and \
+           filename.rsplit('.', 1)[1].lower() in {'jpg','png','jpeg'}
+ 
 @app.route("/")
-def indexPage():
+def registerPage():
+    if "auth_token" in request.cookies:
+        return redirect(url_for("index_page"))
+    return render_template("register.html")
+
+@app.route("/login.html")
+def login_render():
+    return render_template("login.html")
+
+@app.route("/index.html")
+def index_page():
     all_posts = post_collection.find()
     if "auth_token" in request.cookies:
         at = request.cookies.get('auth_token')
         usr = token_collection.find_one({"auth_token": at})
         return render_template('index.html', usr=usr["username"], posts=all_posts)
+    elif "auth_token" not in request.cookies:
+        return redirect(url_for("login_render"))
 
-    else:
-        return render_template('index.html', usr="Guest", posts=all_posts)
+
+@app.route("/questionForm.html")
+def questions_page():
+    return render_template("questionForm.html")
 
 
 @app.route("/static/style.css")
@@ -51,145 +68,150 @@ def css():
 def create_post():
     post_title = request.form['post-title']
     post_description = request.form['post-description']
+    correct_answer = request.form['correct-answer']
     author = ""
     if "auth_token" in request.cookies:
         at = request.cookies.get('auth_token')
         user = token_collection.find_one({"auth_token": at})
         author = user["username"]
     else:
-        author = "Guest"
+        return make_response("You must login to create questions", 400)
+
     post_id = generate_random_string()
-    if author == "Guest":
-        return redirect('/')
-    else:
-        post_collection.insert_one({
-            "_id": post_id,
-            "title": post_title,
-            "description": post_description,
-            "author": author,
-            "likes": []
-        })
-    return redirect('/')
+    question_image = request.files.get('question-image')
+    image_filename = None
+    if question_image and allowed_file(question_image.filename):
+        fileExt = question_image.filename.rsplit('.', 1)[1].lower()
+        image_filename = f"{post_id}.{fileExt}"
+        question_image.save(os.path.join('static/', image_filename))
+    current_time=datetime.time
 
+    new_post = {
+        "_id": post_id,
+        "title": escape(post_title),
+        "description": escape(post_description),
+        "correct_answer": escape(correct_answer),
+        "author": escape(author),
+        "likes": []
+    }
+    if image_filename:
+        new_post['image'] = image_filename
+    expiration_time = int(time.time()) + 60  # 1 minute duration
+    new_post['expiration_time'] = expiration_time
+    post_collection.insert_one(new_post)
+    # Emit the new post to all clients
+    emit('new_post', new_post, namespace='/', broadcast=True)
 
-# we dont need this now boyyyy
-@app.route("/like-post/<post_id>", methods=["POST"])
-def like_post(post_id):
-    # username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
-    username = ""
-    if "auth_token" in request.cookies:
-        at = request.cookies.get('auth_token')
-        user = token_collection.find_one({"auth_token": at})
-        username = user["username"]
-    else:
-        username = "Guest"
-    post = post_collection.find_one({"_id": post_id})
-
-    if username == "Guest":
-        return make_response("You need to be logged in to like a post", 401)
-
-    if username not in post['likes']:
-        post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
-        return make_response("Liked", 200)
-    else:
-        return make_response("You have already liked this post", 400)
-
+    return redirect(url_for("index_page"))
 
 @app.route("/register", methods=["POST"])
 def register():
     if request.method == "POST":
-        inputUsername = request.form['username']
-        inputPassword = request.form['password']
+        inputUsername = escape(request.form['username_reg'])
+        inputPassword = escape(request.form['password_reg'])
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
-        user_collection.insert_one({"username": inputUsername, "password": pwHash.decode('utf-8')})
-        return make_response("Now you are registered!", 200)
-
+        user_collection.insert_one({"username": inputUsername, "password": pwHash})
+        user_collection.update_many({}, {"$set": {"answered_questions": []}})
+        return render_template("login.html")
 
 @app.route("/login", methods=['POST'])
 def login():
-    inputUsername = request.form['username']
-    inputPassword = request.form['password']
-    print(inputUsername, inputPassword)
-    user = user_collection.find_one({'username': inputUsername})
-    print(user,"this is the user")
+    inputUsername = escape(request.form['username_log'])
+    inputPassword = escape(request.form['password_log'])
+    user = user_collection.find_one({'username' : inputUsername})
 
     if user:
-        if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password'].encode('utf-8')):
-            resp = make_response("Now ur logged in", 200)
+        if bcrypt.checkpw(inputPassword.encode('utf-8'), user['password']):
+            resp = redirect(url_for("index_page"))
             auth_token = secrets.token_urlsafe(30)
             hashed_auth_token = str(hashlib.sha256(auth_token.encode('utf-8')).hexdigest())
-            token_collection.insert_one({"auth_token": hashed_auth_token, "username": user["username"]})
+            token_collection.insert_one({"auth_token" : hashed_auth_token, "username" : user["username"]})
             resp.set_cookie('auth_token', hashed_auth_token, max_age=3600, httponly=True)
-            # resp.set_cookie('username', user['username'], max_age=3600)
             return resp
         return make_response("Invalid username or password", 401)
     else:
         return make_response("You have to register first!", 401)
 
 
-# We dont need this now boyyyy
-@app.route("/unlike-post/<post_id>", methods=["POST"])
-def unlike_post(post_id):
-    # username = request.cookies.get('username') if "auth_token" in request.cookies else "Guest"
-    username = ""
-    if "auth_token" in request.cookies:
-        at = request.cookies.get('auth_token')
-        user = token_collection.find_one({"auth_token": at})
-        username = user["username"]
-    else:
-        username = "Guest"
-    post = post_collection.find_one({"_id": post_id})
-
-    if username == "Guest":
-        return make_response("You need to be logged in to unlike a post", 401)
-
-    if username in post['likes']:
-        post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
-        return make_response("Unliked", 200)
-    else:
-        return make_response("You haven't liked this post yet", 400)
-
-
 @app.route("/like-or-unlike-post/<post_id>", methods=["POST"])
 def like_or_unlike_post(post_id):
     action = request.form['action']
+    username = "Guest"  # Default to Guest if no auth token is found
 
-    username = ""
     if "auth_token" in request.cookies:
         at = request.cookies.get('auth_token')
         user = token_collection.find_one({"auth_token": at})
-        username = user["username"]
-    else:
-        username = "Guest"
+        if user:
+            username = user["username"]
 
-    post = post_collection.find_one({"_id": post_id})  # Use '_id' instead of 'id'
-
+    post = post_collection.find_one({"_id": post_id})
     if not post:
-        return make_response("Post not found", 404)
+        return "Post not found", 404
 
-    if username == "Guest":
-        return make_response("You need to be logged in to like or unlike a post", 401)
+    existing_answer = next((ans for ans in post.get('answers', []) if ans['user'] == username), None)
+    if existing_answer:
+        return make_response("You have already answered this question", 200)
 
-    # Ensure 'likes' field exists and is a list
-    if 'likes' not in post:
-        post['likes'] = []
+    is_correct = action == post['correct_answer']
 
-    if action == "like":
-        if username not in post['likes']:
-            post_collection.update_one({"_id": post_id}, {"$push": {"likes": username}})
-            return redirect('/')
-        else:
-            return make_response("You have already liked this post", 400)
+    post_collection.update_one(
+        {"_id": post_id},
+        {"$push": {"answers": {"user": username, "is_correct": is_correct}}}
+    )
 
-    elif action == "unlike":
-        if username in post['likes']:
-            post_collection.update_one({"_id": post_id}, {"$pull": {"likes": username}})
-            return redirect('/')
-        else:
-            return make_response("You haven't liked this post yet", 400)
+    return make_response("Correct" if is_correct else "Incorrect", 200)
 
+@app.route("/my-answers")
+def my_answers():
+    if "auth_token" not in request.cookies:
+        return redirect(url_for("login_render"))  
+
+    at = request.cookies.get('auth_token')
+    user = token_collection.find_one({"auth_token": at})
+    if not user:
+        return redirect(url_for("login_render")) 
+
+    username = user["username"]
+    all_posts = post_collection.find()
+
+    user_answers = []
+    for post in all_posts:
+        for answer in post.get('answers', []):
+            if answer['user'] == username:
+                user_answers.append({
+                    'question': post['title'],
+                    'your_answer': answer['is_correct']
+                })
+
+    return render_template('my_answers.html', user_answers=user_answers)
+
+    
+@app.route("/my-posts")
+def my_posts():
+    if "auth_token" not in request.cookies:
+        return redirect(url_for("login_render"))  # Or your login page
+
+    at = request.cookies.get('auth_token')
+    user = token_collection.find_one({"auth_token": at})
+    if not user:
+        return redirect(url_for("login_render"))  # Or your login page
+
+    username = user["username"]
+    user_posts = post_collection.find({"author": username})
+
+    posts_with_answers = []
+    for post in user_posts:
+        post_info = {
+            'id': post['_id'],
+            'title': post['title'],
+            'description': post['description'],
+            'answers': post.get('answers', [])
+        }
+        posts_with_answers.append(post_info)
+
+    return render_template('my_posts.html', posts=posts_with_answers)
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8080, debug=True)
+    app.run(host="0.0.0.0",port=8080,debug=True)

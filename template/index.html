@@ -1,56 +1,109 @@
 <!DOCTYPE html>
-
 <html>
-    <head>
-        <title>Project</title>
-        <link rel="stylesheet" href="/static/style.css">
-    </head>
+<head>
+    <title>Project</title>
+    <link rel="stylesheet" href="/static/style.css">
+    <script src="//cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.0/socket.io.min.js"></script>
+    <script>
+        var socket = io.connect('http://' + document.domain + ':' + location.port);
 
-    <body>
-        <h1>X.com</h1>
+        socket.on('connect', function() {
+            console.log('Websocket connected!');
+        });
 
-        <div id="main-content">
-            {% for post in posts %}
-<div class="post">
-    <h3>{{ post.title }} by <span class="username">{{ post.author }}</span></h3>
-    <p>{{ post.description }}</p>
-    <form action="/like-or-unlike-post/{{post._id}}" method="post">
-        <button type="submit" name="action" value="like">Like</button>
-        <button type="submit" name="action" value="unlike">Unlike</button>
-    </form>
-    <span>Likes: {{ post.likes|length }}</span>
-</div>
-{% endfor %}
+        socket.on('new_post', function(newPost) {
+    addPostToDOM(newPost);
+    startTimer(newPost._id, newPost.expiration_time);
+});
 
+
+        window.onload = function() {
+            var posts = document.querySelectorAll('.post');
+            posts.forEach(function(post) {
+                var postId = post.getAttribute('data-post-id');
+                var expirationTime = parseInt(post.getAttribute('data-expiration-time'));
+                startTimer(postId, expirationTime);
+            });
+        };
+
+        function addPostToDOM(post) {
+    var mainContentElement = document.getElementById('main-content');
+
+    var postHtml = '<div class="post" data-post-id="' + post._id + '" data-expiration-time="' + post.expiration_time + '">' +
+                   '<h3>' + post.title + ' by <span class="username">' + post.author + '</span></h3>' +
+                   '<p>' + post.description + '</p>';
+
+    if(post.image) {
+        postHtml += '<div class="post-image">' +
+                    '<img src="/static/' + post.image + '" alt="Question Image">' +
+                    '</div>';
+    }
+
+    if(post.author != '{{ usr }}') {
+        postHtml += '<form action="/like-or-unlike-post/' + post._id + '" method="post">' +
+                    '<input type="text" name="action" id="answer-input-' + post._id + '">' +
+                    '<button type="submit">Submit Answer</button>' +
+                    '</form>' +
+                    '<div id="timer-' + post._id + '">Time Remaining: </div>';
+    }
+    postHtml += '</div>';
+    mainContentElement.innerHTML += postHtml;
+}
+
+        function startTimer(postId, expirationTime) {
+            var timerElement = document.getElementById(`timer-${postId}`);
+
+            var timerInterval = setInterval(function() {
+                var currentTime = Math.floor(Date.now() / 1000);
+                var timeRemaining = expirationTime - currentTime;
+
+                if (timeRemaining <= 0) {
+                    clearInterval(timerInterval);
+                    timerElement.innerText = 'Time is up!';
+                    disableAnswerSubmission(postId);
+                } else {
+                    timerElement.innerText = 'Time Remaining: ' + timeRemaining + ' seconds';
+                }
+            }, 1000);
+        }
+
+        function disableAnswerSubmission(postId) {
+            var answerInput = document.getElementById(`answer-input-${postId}`);
+            answerInput.disabled = true;
+        }
+    </script>
+</head>
+<body>
+    <h1>Second time's the charm!</h1>
+    <h2>Hello, {{ usr }}</h2>
+
+        <a href="/questionForm.html" class="button">Create a question</a>
+    
+        <a href="/my-answers" class="button">Check Grades</a>
+    
+        <a href="/my-posts" class="button">My Posts</a>
+
+    <div id="main-content">
+        {% for post in posts %}
+        <div class="post" data-post-id="{{ post._id }}" data-expiration-time="{{ post.expiration_time }}">
+            <h3>{{ post.title }} by <span class="username">{{ post.author }}</span></h3>
+            <p>{{ post.description }}</p>
             
-
-            <h3>Create a Post</h3>
-            <form action="/create-post" method="post">
-                <input type="text" name="post-title" placeholder="Post Title" required />
-                <textarea name="post-description" placeholder="Post Description" required></textarea>
-                <input type="submit" value="Create Post" />
+            {% if post.author != usr %}
+            <form action="/like-or-unlike-post/{{ post._id }}" method="post">
+                <input type="text" name="action" id="answer-input-{{ post._id }}">
+                <button type="submit">Submit Answer</button>
             </form>
+            <div id="timer-{{ post._id }}">Time Remaining: </div>
+            {% endif %}
+            
+            {% if post.image %}
+            <div class="post-image">
+                <img src="{{ url_for('static', filename=post.image) }}" alt="Question Image">
+            </div>
+            {% endif %}
         </div>
-
-        <div id="side-bar">
-            <h2>Hello, {{ usr }}</h2>
-
-            <h3>Register</h3>
-            <form action="/register" id="reg-form" method="post" enctype="multipart/form-data">
-                <input type="text" name="username" placeholder="Username" required />
-                <input type="password" name="password" placeholder="Password" required />
-                <input type="submit" value="Register" />
-            </form>
-
-            <h3>Login</h3>
-            <form action="/login" id="login-form" method="post" enctype="multipart/form-data">
-                <input type="text" name="username" placeholder="Username" required />
-                <input type="password" name="password" placeholder="Password" required />
-                <input type="submit" value="Login" />
-            </form>
-        </div>
-
-        <div style="clear: both;"></div>
-
-    </body>
+        {% endfor %}
+    </div>
+</body>
 </html>

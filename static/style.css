@@ -18,3 +18,12 @@ body{
     max-width: 500px;
     max-height: 500px;
 }
+
+.button {
+    background-color: rgb(237, 237, 237);
+    padding: 10px 30px;
+    text-decoration: none;
+    text-align: center;
+    font-size: large;
+    cursor: pointer;
+}

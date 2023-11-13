@@ -8,18 +8,23 @@
         <h3>Create a Quiz Question</h3>
         <form action="/create-post" method="post" enctype="multipart/form-data">
             <input type="text" name="post-title" placeholder="Question Title" required />
+            <br><br>
             <textarea name="post-description" placeholder="Question Description" required></textarea>
+            <br><br>
 
             <!-- Optional image for the question -->
             <input type="file" name="question-image" accept="image/png, image/jpeg,image/jpg">
+            <br><br>
             
             <!-- Correct answer -->
             <div>
                 <label>Correct Answer:</label>
                 <input type="text" name="correct-answer" placeholder="Correct Answer" required>
+                <br><br>
             </div>
             
             <input type="submit" value="Create Question" />
+            <br><br>
         </form>
     </body>
 </html>

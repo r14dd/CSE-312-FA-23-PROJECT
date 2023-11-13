@@ -74,12 +74,14 @@
     </script>
 </head>
 <body>
-    <h1>X.com</h1>
+    <h1>Second time's the charm!</h1>
     <h2>Hello, {{ usr }}</h2>
 
-    <a href="/questionForm.html">Create a question</a>
-    <a href="/my-answers">Check Grades</a>
-    <a href="/my-posts">My Posts</a>
+        <a href="/questionForm.html" class="button">Create a question</a>
+    
+        <a href="/my-answers" class="button">Check Grades</a>
+    
+        <a href="/my-posts" class="button">My Posts</a>
 
     <div id="main-content">
         {% for post in posts %}

@@ -48,6 +48,8 @@ def index_page():
         at = request.cookies.get('auth_token')
         usr = token_collection.find_one({"auth_token": at})
         return render_template('index.html', usr=usr["username"], posts=all_posts)
+    elif "auth_token" not in request.cookies:
+        return redirect(url_for("login_render"))
 
 
 @app.route("/questionForm.html")

@@ -1,0 +1,16 @@
+<html>
+    <head><link rel="stylesheet" href="/static/logreg.css"></head>
+    <body>
+        
+    {% if verified == "No" %}
+        <h3>Your Email Has Not Been Verified. Check Your Email.</h3>
+    {% endif %}
+
+    {% if verified == "Yes" %}
+        <h3>Your Email Has Been Verified</h3>
+    {% endif %}
+
+    <a href="/index.html" class="button">Go to Homepage</a>
+
+    </body>
+</html>

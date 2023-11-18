@@ -42,13 +42,25 @@ def registerPage():
 def login_render():
     return render_template("login.html")
 
+@app.route("/verified.html")
+def verified_render():
+    if "auth_token" in request.cookies:
+        at = request.cookies.get('auth_token')
+        usr = token_collection.find_one({"auth_token": at})
+        verified = user_collection.find_one({"username": usr["username"]})
+    return render_template("verified.html",verified=verified["isVerified"])
+
 @app.route("/index.html")
 def index_page():
     all_posts = post_collection.find()
     if "auth_token" in request.cookies:
         at = request.cookies.get('auth_token')
         usr = token_collection.find_one({"auth_token": at})
-        return render_template('index.html', usr=usr["username"], posts=all_posts)
+        verified = user_collection.find_one({"username": usr["username"]})
+        if verified["isVerified"] == "Yes":
+            return render_template('index.html', usr=usr["username"], posts=all_posts)
+        else:
+            return redirect(url_for("verified_render"))
     elif "auth_token" not in request.cookies:
         return redirect(url_for("login_render"))
 
@@ -111,7 +123,7 @@ def register():
         inputPassword = escape(request.form['password_reg'])
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
-        user_collection.insert_one({"username": inputUsername, "password": pwHash})
+        user_collection.insert_one({"username": inputUsername, "password": pwHash, "isVerified": "No"})
         user_collection.update_many({}, {"$set": {"answered_questions": []}})
         return render_template("login.html")
 

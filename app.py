@@ -10,6 +10,8 @@ from flask_socketio import SocketIO, emit
 import datetime
 import time
 
+import mail
+
 from pymongo import MongoClient
 mongo_client = MongoClient("mongo")
 db = mongo_client["cse312"]
@@ -22,6 +24,8 @@ all_users=post_collection.find()
 for p in all_users:
     print(p)
 
+
+
 app = Flask(__name__,template_folder='template')
 socketio = SocketIO(app, cors_allowed_origins="*")
 
@@ -31,6 +35,17 @@ def generate_random_string():
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in {'jpg','png','jpeg'}
+
+
+@app.route("/blankVerify.html", methods=["GET"])
+def tempVerify():
+    if "auth_token" in request.cookies:
+        at = request.cookies.get('auth_token')
+        usr = token_collection.find_one({"auth_token" : at})
+        verified = user_collection.find_one({"username" : usr["username"]})
+        user_collection.update_one({"username" : verified["username"]}, {"$set" : {"isVerified" : "Yes"}})
+        return redirect(url_for("verified_render"))
+    return render_template("blankVerify.html")
  
 @app.route("/")
 def registerPage():
@@ -48,7 +63,9 @@ def verified_render():
         at = request.cookies.get('auth_token')
         usr = token_collection.find_one({"auth_token": at})
         verified = user_collection.find_one({"username": usr["username"]})
-    return render_template("verified.html",verified=verified["isVerified"])
+        if verified["isVerified"] == "No":
+            mail.sender(verified["email"])
+        return render_template("verified.html",verified=verified["isVerified"])
 
 @app.route("/index.html")
 def index_page():
@@ -121,9 +138,10 @@ def register():
     if request.method == "POST":
         inputUsername = escape(request.form['username_reg'])
         inputPassword = escape(request.form['password_reg'])
+        inputEmail = escape(request.form['email_reg'])
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
-        user_collection.insert_one({"username": inputUsername, "password": pwHash, "isVerified": "No"})
+        user_collection.insert_one({"username": inputUsername, "password": pwHash, "email": inputEmail, "isVerified": "No"})
         user_collection.update_many({}, {"$set": {"answered_questions": []}})
         return render_template("login.html")
 
@@ -223,6 +241,11 @@ def my_posts():
         posts_with_answers.append(post_info)
 
     return render_template('my_posts.html', posts=posts_with_answers)
+
+
+
+
+
 
 
 if __name__ == "__main__":

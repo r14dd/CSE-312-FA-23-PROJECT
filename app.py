@@ -24,10 +24,10 @@ all_users=post_collection.find()
 for p in all_users:
     print(p)
 
-
+ssl_context = ('nginx/cert.pem', 'nginx/private.key')
 
 app = Flask(__name__,template_folder='template')
-socketio = SocketIO(app, cors_allowed_origins="*")
+socketio = SocketIO(app, cors_allowed_origins="*", ssl_context=ssl_context, transport=['websocket'])
 
 def generate_random_string():
     return str(random.randint(1000, 9999))
@@ -249,4 +249,4 @@ def my_posts():
 
 
 if __name__ == "__main__":
-    app.run(host="0.0.0.0",port=8080,debug=True)
+    socketio.run(app, host="0.0.0.0",port=8080,debug=True, ssl_context=ssl_context, allow_unsafe_werkzeug=True)

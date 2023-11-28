@@ -13,7 +13,6 @@ from email.mime.multipart import MIMEMultipart
 from email.mime.text import MIMEText
 
 
-
 SCOPES = ['https://www.googleapis.com/auth/gmail.send']
 
 '''The pieces of this code are referenced
@@ -58,7 +57,7 @@ def sender(email):
 
     hashed_token = hashlib.sha256(encoded_t0ken.encode()).hexdigest()
 
-    link = f"http://localhost:8080/blankVerify.html?email={email}&token={hashed_token}"
+    link = f"https://localhost:8080/blankVerify.html?email={email}&token={hashed_token}"
 
     description = f"Please confirm your email address by clicking the link below!\r\n{link}\r\n\r\n~Second time's the charm"
 
@@ -67,3 +66,6 @@ def sender(email):
     encoded_message = base64.urlsafe_b64encode(email_content.as_string().encode()).decode()
     encoded_email_content = {'raw': encoded_message}
     service.users().messages().send(userId="me", body=encoded_email_content).execute()
+
+if __name__ == "__main__":
+    sender('riadmukh@buffalo.edu')

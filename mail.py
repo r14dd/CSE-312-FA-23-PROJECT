@@ -57,7 +57,7 @@ def sender(email):
 
     hashed_token = hashlib.sha256(encoded_t0ken.encode()).hexdigest()
 
-    link = f"https://localhost:8080/blankVerify.html?email={email}&token={hashed_token}"
+    link = f"https://secondtimesthecharm.net/blankVerify.html?email={email}&token={hashed_token}"
 
     description = f"Please confirm your email address by clicking the link below!\r\n{link}\r\n\r\n~Second time's the charm"
 
@@ -67,5 +67,3 @@ def sender(email):
     encoded_email_content = {'raw': encoded_message}
     service.users().messages().send(userId="me", body=encoded_email_content).execute()
 
-if __name__ == "__main__":
-    sender('riadmukh@buffalo.edu')

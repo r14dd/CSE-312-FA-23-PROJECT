@@ -1,5 +1,5 @@
 import secrets
-from flask import Flask
+
 from flask import *
 from markupsafe import escape
 import bcrypt
@@ -9,9 +9,6 @@ import os
 from flask_socketio import SocketIO, emit
 import datetime
 import time
-from flask_limiter import Limiter
-from flask_limiter.util import get_remote_address
-import mail
 
 from pymongo import MongoClient
 mongo_client = MongoClient("mongo")
@@ -25,17 +22,8 @@ all_users=post_collection.find()
 for p in all_users:
     print(p)
 
-ssl_context = ('nginx/cert.pem', 'nginx/private.key')
-
 app = Flask(__name__,template_folder='template')
-socketio = SocketIO(app, cors_allowed_origins="*", ssl_context=ssl_context, transport=['websocket'])
-
-limiter = Limiter(
-    app=app,
-    key_func=get_remote_address,
-    default_limits=["50 per 10 second"]
-)
-
+socketio = SocketIO(app, cors_allowed_origins="*")
 
 def generate_random_string():
     return str(random.randint(1000, 9999))
@@ -43,55 +31,7 @@ def generate_random_string():
 def allowed_file(filename):
     return '.' in filename and \
            filename.rsplit('.', 1)[1].lower() in {'jpg','png','jpeg'}
-
-
-@app.route("/blankVerify.html", methods=["GET"])
-def tempVerify():
-    if "auth_token" in request.cookies:
-        at = request.cookies.get('auth_token')
-        usr = token_collection.find_one({"auth_token" : at})
-        verified = user_collection.find_one({"username" : usr["username"]})
-        user_collection.update_one({"username" : verified["username"]}, {"$set" : {"isVerified" : "Yes"}})
-        return redirect(url_for("verified_render"))
-    return render_template("blankVerify.html")
-
-ip_tracker = {}
-
-'''The pieces of this code are referenced
-   from the official Flask Limiter do-
-   cumentation. Find the link below! 
-'''
-
-'''https://flask-limiter.readthedocs.io/en/stable/'''
-
-@app.before_request
-def check_ip_rate_limit():
-    client_ip = request.remote_addr
-    current_time = time.time()
-
-  
-    ip_info = ip_tracker.get(client_ip, {"requests": 0, "blocked_until": 0})
-    if current_time < ip_info["blocked_until"]:
-        return jsonify(error="Too Many Requests", message="Your IP is temporarily blocked. Please wait."), 429
-
-    
-    ip_info["requests"] += 1
-    if ip_info["requests"] > 50:  
-        ip_info["requests"] = 0  
-        ip_info["blocked_until"] = current_time + 30 
-    ip_tracker[client_ip] = ip_info
-
-@app.route("/example")
-@limiter.limit("50 per 10 seconds")
-def example_route():
-    # Your route logic
-    return "This is an example route."
-
-@app.errorhandler(429)
-def ratelimit_handler(e):
-    return jsonify(error="Too Many Requests", message="You have exceeded the rate limit. Please wait 30 seconds."), 429
-
-
+ 
 @app.route("/")
 def registerPage():
     if "auth_token" in request.cookies:
@@ -102,27 +42,13 @@ def registerPage():
 def login_render():
     return render_template("login.html")
 
-@app.route("/verified.html")
-def verified_render():
-    if "auth_token" in request.cookies:
-        at = request.cookies.get('auth_token')
-        usr = token_collection.find_one({"auth_token": at})
-        verified = user_collection.find_one({"username": usr["username"]})
-        if verified["isVerified"] == "No":
-            mail.sender(verified["email"])
-        return render_template("verified.html",verified=verified["isVerified"])
-
 @app.route("/index.html")
 def index_page():
     all_posts = post_collection.find()
     if "auth_token" in request.cookies:
         at = request.cookies.get('auth_token')
         usr = token_collection.find_one({"auth_token": at})
-        verified = user_collection.find_one({"username": usr["username"]})
-        if verified["isVerified"] == "Yes":
-            return render_template('index.html', usr=usr["username"], posts=all_posts)
-        else:
-            return redirect(url_for("verified_render"))
+        return render_template('index.html', usr=usr["username"], posts=all_posts)
     elif "auth_token" not in request.cookies:
         return redirect(url_for("login_render"))
 
@@ -183,10 +109,9 @@ def register():
     if request.method == "POST":
         inputUsername = escape(request.form['username_reg'])
         inputPassword = escape(request.form['password_reg'])
-        inputEmail = escape(request.form['email_reg'])
         salt = bcrypt.gensalt()
         pwHash = bcrypt.hashpw(inputPassword.encode('utf-8'), salt)
-        user_collection.insert_one({"username": inputUsername, "password": pwHash, "email": inputEmail, "isVerified": "No"})
+        user_collection.insert_one({"username": inputUsername, "password": pwHash})
         user_collection.update_many({}, {"$set": {"answered_questions": []}})
         return render_template("login.html")
 
@@ -288,10 +213,5 @@ def my_posts():
     return render_template('my_posts.html', posts=posts_with_answers)
 
 
-
-
-
-
-
 if __name__ == "__main__":
-    socketio.run(app, host="0.0.0.0", port=8080, debug=False,allow_unsafe_werkzeug=True)
+    app.run(host="0.0.0.0",port=8080,debug=True)

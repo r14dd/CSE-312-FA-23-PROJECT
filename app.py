@@ -1,5 +1,5 @@
 import secrets
-
+from datetime import timedelta
 from flask import *
 from markupsafe import escape
 import bcrypt
@@ -57,29 +57,48 @@ def index_page():
 
 ip_tracker = {}
 
+
 @app.before_request
-def check_ip_rate_limit():
-    if request.path.startswith('/static/'):  
-        return
-    client_ip = request.remote_addr
-    current_time = time.time()
+def check_request_limit():
 
-    ip_info = ip_tracker.get(client_ip, {"requests": 0, "last_request_time": 0, "blocked_until": 0})
+    ip = request.remote_addr
 
-    if current_time < ip_info["blocked_until"]:
-        return jsonify(error="Too Many Requests", message="Your IP is temporarily blocked. Please wait."), 429
+    if ip in ip_tracker:
+        last_request_time = ip_tracker[ip]['timestamp']
+        time_elapsed = datetime.datetime.now() - last_request_time
 
-    if current_time - ip_info.get("last_request_time", 0) > 10:
-        ip_info["requests"] = 0
+        if ip_tracker[ip]['banned?']:
+            if datetime.datetime.now() < ip_tracker[ip]['ban_done?']:
+                response = make_response('Too many requests', 429)
+                return response
+            else:
+                ip_tracker[ip] = {
+                    'count': 1,
+                    'timestamp': datetime.datetime.now(),
+                    'banned?': False
+                }
+        elif time_elapsed < timedelta(seconds=10):
+            ip_tracker[ip]['count'] += 1
 
-    ip_info["requests"] += 1
-    ip_info["last_request_time"] = current_time
-
-    if ip_info["requests"] > 50:
-        ip_info["blocked_until"] = current_time + 30
-
-    ip_tracker[client_ip] = ip_info
-
+            if ip_tracker[ip]['count'] > 50:
+                ip_tracker[ip]['banned?'] = True
+                ban_end_time = last_request_time + timedelta(seconds=30)
+                ip_tracker[ip]['ban_done?'] = ban_end_time
+                response = make_response('Too many requests', 429)
+                return response
+        else:
+            ip_tracker[ip] = {
+                'count': 1,
+                'timestamp': datetime.datetime.now(),
+                'banned?': False
+            }
+    else:
+        ip_tracker[ip] = {
+            'count': 1,
+            'timestamp': datetime.datetime.now(),
+            'banned?': False
+        }
+        
 @app.route("/questionForm.html")
 def questions_page():
     return render_template("questionForm.html")

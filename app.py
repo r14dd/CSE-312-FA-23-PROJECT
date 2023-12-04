@@ -10,6 +10,7 @@ from flask_socketio import SocketIO, emit
 import datetime
 import time
 
+
 from pymongo import MongoClient
 mongo_client = MongoClient("mongo")
 db = mongo_client["cse312"]
@@ -38,6 +39,8 @@ def registerPage():
         return redirect(url_for("index_page"))
     return render_template("register.html")
 
+
+
 @app.route("/login.html")
 def login_render():
     return render_template("login.html")
@@ -52,6 +55,30 @@ def index_page():
     elif "auth_token" not in request.cookies:
         return redirect(url_for("login_render"))
 
+ip_tracker = {}
+
+@app.before_request
+def check_ip_rate_limit():
+    if request.path.startswith('/static/'):  
+        return
+    client_ip = request.remote_addr
+    current_time = time.time()
+
+    ip_info = ip_tracker.get(client_ip, {"requests": 0, "last_request_time": 0, "blocked_until": 0})
+
+    if current_time < ip_info["blocked_until"]:
+        return jsonify(error="Too Many Requests", message="Your IP is temporarily blocked. Please wait."), 429
+
+    if current_time - ip_info.get("last_request_time", 0) > 10:
+        ip_info["requests"] = 0
+
+    ip_info["requests"] += 1
+    ip_info["last_request_time"] = current_time
+
+    if ip_info["requests"] > 50:
+        ip_info["blocked_until"] = current_time + 30
+
+    ip_tracker[client_ip] = ip_info
 
 @app.route("/questionForm.html")
 def questions_page():

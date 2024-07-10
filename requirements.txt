@@ -4,3 +4,4 @@ bcrypt
 flask-sock
 flask-login
 flask_socketio
+zipp>=3.19.1 # not directly required, pinned by Snyk to avoid a vulnerability
